@@ -49,7 +49,7 @@ def migrate_guest(params, env):
 @ParamsRequire.decorator(['guest_name'])
 def check_mem_from_xml(params, env):
     assert params.guest_name
-    with prefix_logger(LOGGER, "\033[94mCheckpoints:\033[0m"):
+    with prefix_logger(LOGGER, "\033[92mCheckpoints:\033[0m"):
         LOGGER.info("Checking guest memory in xml")
 
 
@@ -58,5 +58,5 @@ def check_mem_from_xml(params, env):
 @Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
 def check_mem_in_guest(params, env):
     assert params.guest_name
-    with prefix_logger(LOGGER, "\033[94mCheckpoints:\033[0m"):
+    with prefix_logger(LOGGER, "\033[92mCheckpoints:\033[0m"):
         LOGGER.info("Checking guest cpu in guest")

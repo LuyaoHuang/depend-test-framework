@@ -187,10 +187,10 @@ class Params(dict):
         return self.key_set > target.key_set
 
     def pretty_display(self):
-        LOGGER.info("=" * 8 + "Parameters" + "=" * 8 + "\n")
+        LOGGER.info("=" * 8 + "Parameters" + "=" * 8)
         for key, value in self.items():
             LOGGER.info("    Param %s is %s" % (key, value))
-        LOGGER.info("=" * 20 + "\n")
+        LOGGER.info("=" * 20)
 
 class Memory(Container):
     pass

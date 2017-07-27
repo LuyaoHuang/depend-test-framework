@@ -2,7 +2,7 @@ from contextlib import contextmanager
 import logging
 import time
 
-FMT = '%(asctime)s | %(levelname)-8s | %(name)s - {0} %(message)s'
+FMT = '%(asctime)s | %(levelname)-3s | %(name)-10s | {0} %(message)s'
 
 def make_timing_logger(logger, precision=3, level=logging.DEBUG):
     @contextmanager
@@ -19,6 +19,13 @@ def make_timing_logger(logger, precision=3, level=logging.DEBUG):
 
     return log_time
 
+def make_prefix_logger(logger, prefix):
+    def log_helper(msg, *args):
+        with prefix_logger(logger, prefix):
+            logger.info(msg, *args)
+
+    return log_helper
+
 def get_logger(name, level=logging.INFO, prefix=""):
     """
     Generate a logger for a module
@@ -26,11 +33,19 @@ def get_logger(name, level=logging.INFO, prefix=""):
     logger = logging.getLogger(name)
     logger.propagate = False
     logger.setLevel(level)
+    formatter = logging.Formatter(FMT.format(prefix))
+
     console_handler = logging.StreamHandler()
     console_handler.setLevel(level)
-    formatter = logging.Formatter(FMT.format(prefix))
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
+
+    # TODO: file put in config
+    file_handler = logging.FileHandler('log.debug')
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
     return logger
 
 @contextmanager

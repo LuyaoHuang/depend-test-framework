@@ -229,7 +229,8 @@ class Demo(Engine):
             test_func = random.choice(test_funcs)
             test_funcs.remove(test_func)
 
-            LOGGER.info("=" * 8 + " %s " % test_func.func_name + "=" * 8 + "\n")
+            LOGGER.info("=" * 8 + " %s " % test_func.func_name + "=" * 8)
+            LOGGER.info("")
             cases = self.compute_route_permutations(test_func)
             cleanup = self.compute_route_permutations(test_func, True)
             i = 1
@@ -250,10 +251,10 @@ class Demo(Engine):
                 i += 1
                 if not cleanup:
                     LOGGER.info("no clean up")
-                    LOGGER.info("Current Env: %s", self.env)
-                    continue
-                cleanup_case = random.choice(cleanup)
-                for func in cleanup_case:
-                    func(self.params, self.env)
-                    self.env = self.env.gen_transfer_env(func)
+                else:
+                    cleanup_case = random.choice(cleanup)
+                    for func in cleanup_case:
+                        func(self.params, self.env)
+                        self.env = self.env.gen_transfer_env(func)
                 LOGGER.info("Current Env: %s", self.env)
+                LOGGER.info("")
