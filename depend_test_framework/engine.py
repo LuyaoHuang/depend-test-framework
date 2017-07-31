@@ -187,7 +187,7 @@ class Engine(object):
                 consumers.add(func)
         return consumers
 
-    def run_one_case(self, func, check=True):
+    def run_one_step(self, func, check=True):
         with prefix_logger(LOGGER, "\033[94mAction:\033[0m", new_name=func.__module__):
             func(self.params, self.env)
         self.env = self.env.gen_transfer_env(func)
@@ -228,6 +228,7 @@ class Demo(Engine):
 
     def run(self, params):
         self.params = params
+        # TODO
         self.params.logger = LOGGER
         self.filter_func()
         self.gen_depend_map()
@@ -263,14 +264,14 @@ class Demo(Engine):
 
                 LOGGER.info("=" * 8 + " case %d " % i + "=" * 8)
                 for func in case:
-                    self.run_one_case(func)
-                self.run_one_case(test_func)
+                    self.run_one_step(func)
+                self.run_one_step(test_func)
                 i += 1
                 if not cleanup:
-                    LOGGER.info("no clean up")
+                    LOGGER.info("Cannot find clean up way")
                 else:
                     cleanup_case = random.choice(cleanup)
                     for func in cleanup_case:
-                        self.run_one_case(func, False)
+                        self.run_one_step(func, False)
                 LOGGER.info("Current Env: %s", self.env)
                 LOGGER.info("")
