@@ -20,7 +20,21 @@ def register_entrypoint(fn, entrypoint):
     descriptors.add(entrypoint)
 
 def get_entrypoint(fn):
-    return getattr(fn, '_test_entry', None)
+    if isinstance(fn, types.FunctionType):
+        return getattr(fn, '_test_entry', None)
+    try:
+        if issubclass(fn, TestObject):
+            return getattr(fn, '_test_entry', None)
+    except TypeError:
+        return
+
+class TestObject(object):
+    _test_entry = set()
+    def __call__(self, *args, **kwargs):
+        """
+        Put the real steps in this function
+        """
+        raise NotImplementedError
 
 class Entrypoint(object):
     __params = None
@@ -306,6 +320,11 @@ class Env(dict):
         """
         return hash(str(self))
 
+def is_TestObject(obj):
+    try:
+        return issubclass(obj, TestObject)
+    except TypeError:
+        return
 
 def is_Action(obj):
     return _check_func_entrys(obj, Action)
@@ -316,9 +335,8 @@ def is_CheckPoint(obj):
 def is_Hybrid(obj):
     return _check_func_entrys(obj, Hybrid)
 
-def get_all_depend(func, depend_types=None, depend_cls=Dependency, ret_list=True):
-    if not isinstance(func, types.FunctionType):
-        return []
+def get_all_depend(func, depend_types=None,
+                   depend_cls=Dependency, ret_list=True):
     entrys = get_entrypoint(func)
     if not entrys:
         return []
@@ -336,8 +354,6 @@ def get_all_depend(func, depend_types=None, depend_cls=Dependency, ret_list=True
     return depends
 
 def get_func_params_require(func):
-    if not isinstance(func, types.FunctionType):
-        return
     entrys = get_entrypoint(func)
     if not entrys:
         return
@@ -346,8 +362,6 @@ def get_func_params_require(func):
             return entry
 
 def _check_func_entrys(obj, internal_type):
-    if not isinstance(obj, types.FunctionType):
-        return False
     entrys = get_entrypoint(obj)
     if not entrys:
         return False

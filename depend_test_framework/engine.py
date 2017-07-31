@@ -5,12 +5,13 @@ import inspect
 import itertools
 import random
 from collections import OrderedDict
-from core import is_Action, is_CheckPoint, Container, is_Hybrid, Env, get_all_depend, Params, get_func_params_require, Provider, Consumer
+from core import is_Action, is_CheckPoint, Container, is_Hybrid, Env, get_all_depend, Params, get_func_params_require, Provider, Consumer, TestObject, is_TestObject
 from utils import pretty
 from log import get_logger, prefix_logger
 from algorithms import route_permutations
 
 LOGGER = get_logger(__name__)
+
 
 class Engine(object):
     def __init__(self, modules):
@@ -21,13 +22,21 @@ class Engine(object):
         self.env = Env()
         self.params = Params()
 
+        def _handle_func(func, conatiner):
+            if is_TestObject(func):
+                inst_func = func()
+                conatiner.add(inst_func)
+            else:
+                conatiner.add(func)
+
         for module in modules:
             for _, func in inspect.getmembers(module, is_Action):
-                self.actions.add(func)
+                # TODO: remove dup code
+                _handle_func(func, self.actions)
             for _, func in inspect.getmembers(module, is_CheckPoint):
-                self.checkpoints.add(func)
+                _handle_func(func, self.checkpoints)
             for _, func in inspect.getmembers(module, is_Hybrid):
-                self.hybrids.add(func)
+                _handle_func(func, self.hybrids)
 
         self.dep_map = None
 
@@ -178,6 +187,13 @@ class Engine(object):
                 consumers.add(func)
         return consumers
 
+    def run_one_case(self, func):
+        func(self.params, self.env)
+        self.env = self.env.gen_transfer_env(func)
+        checkpoints = self.find_checkpoints()
+        for checkpoint in checkpoints:
+            checkpoint(self.params, self.env)
+
 class Template(Engine):
     pass
 
@@ -240,14 +256,8 @@ class Demo(Engine):
 
                 LOGGER.info("=" * 8 + " case %d " % i + "=" * 8)
                 for func in case:
-                    func(self.params, self.env)
-                    self.env = self.env.gen_transfer_env(func)
-                    checkpoints = self.find_checkpoints()
-                    for checkpoint in checkpoints:
-                        checkpoint(self.params, self.env)
-                test_func(self.params, self.env)
-                for checkpoint in checkpoints:
-                    checkpoint(self.params, self.env)
+                    self.run_one_case(func)
+                self.run_one_case(test_func)
                 i += 1
                 if not cleanup:
                     LOGGER.info("no clean up")

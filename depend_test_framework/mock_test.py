@@ -1,7 +1,8 @@
-from core import Action, ParamsRequire, Provider, Consumer, CheckPoint
+from core import Action, ParamsRequire, Provider, Consumer, CheckPoint, TestObject
 from log import get_logger, prefix_logger
 
 LOGGER = get_logger(__name__)
+
 
 @Action.decorator(1)
 @ParamsRequire.decorator(['guest_name', 'new_vcpu'])
@@ -60,3 +61,19 @@ def check_mem_in_guest(params, env):
     assert params.guest_name
     with prefix_logger(LOGGER, "\033[92mCheckpoints:\033[0m"):
         LOGGER.info("Checking guest cpu in guest")
+
+
+class check_vcpu_info(TestObject):
+#    def __init__(self):
+#        self._test_entry.add(CheckPoint(1))
+#        self._test_entry.add(ParamsRequire(['guest_name']))
+#        self._test_entry.add(Consumer('$guest_name.active', Consumer.REQUIRE))
+    _test_entry = set([CheckPoint(1),
+        ParamsRequire(['guest_name']),
+        Consumer('$guest_name.active',
+                 Consumer.REQUIRE)])
+
+    def __call__(self, params, env):
+        assert params.guest_name
+        with prefix_logger(LOGGER, "\033[92mCheckpoints:\033[0m"):
+            LOGGER.info("Checking guest cpu info from xml")
