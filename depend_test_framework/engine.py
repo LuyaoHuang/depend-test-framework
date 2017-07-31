@@ -185,9 +185,9 @@ class Engine(object):
             return
         checkpoints = self.find_checkpoints()
         for i, checkpoint in enumerate(checkpoints):
-           # if checkpoint.__doc__:
-           #     LOGGER.info("Desciption: %s", checkpoint.__doc__)
             with prefix_logger(LOGGER, "\033[92mCheckpoint%s:\033[0m" % str(i+1), new_name=checkpoint.__module__):
+                if checkpoint.__doc__:
+                    LOGGER.info("Desciption: %s", checkpoint.__doc__)
                 checkpoint(self.params, self.env)
 
 class Template(Engine):
