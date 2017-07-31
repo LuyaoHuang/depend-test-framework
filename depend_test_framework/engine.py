@@ -90,37 +90,27 @@ class Engine(object):
     def all_funcs(self):
         return self.hybrids | self.checkpoints | self.actions
 
-    def filter_func(self):
-        # TODO
-        need_remove = Container()
-        for func in self.actions:
-            param_req = get_func_params_require(func)
-            if not param_req:
-                continue
-            if not self.params >= param_req.param_depend:
-                LOGGER.info('Remove func ' + str(func))
-                need_remove.add(func)
-        self.actions -= need_remove
+    def _cb_filter_with_param(self, func):
+        param_req = get_func_params_require(func)
+        if not param_req:
+            return False
+        if not self.params >= param_req.param_depend:
+            return True
+        else:
+            return False
 
-        need_remove = Container()
-        for func in self.checkpoints:
-            param_req = get_func_params_require(func)
-            if not param_req:
-                continue
-            if not self.params >= param_req.param_depend:
-                LOGGER.info('Remove func ' + str(func))
-                need_remove.add(func)
-        self.checkpoints -= need_remove
+    def filter_all_func_custom(self, cb):
+        self.filter_func_custom(self.actions, cb)
+        self.filter_func_custom(self.checkpoints, cb)
+        self.filter_func_custom(self.hybrids, cb)
 
+    def filter_func_custom(self, container, cb):
         need_remove = Container()
-        for func in self.hybrids:
-            param_req = get_func_params_require(func)
-            if not param_req:
-                continue
-            if not self.params >= param_req.param_depend:
+        for func in container:
+            if cb(func):
                 LOGGER.info('Remove func ' + str(func))
                 need_remove.add(func)
-        self.hybrids -= need_remove
+        container -= need_remove
 
     def get_all_depend_provider(self, depend):
         providers = []
@@ -230,7 +220,7 @@ class Demo(Engine):
         self.params = params
         # TODO
         self.params.logger = LOGGER
-        self.filter_func()
+        self.filter_all_func_custom(self._cb_filter_with_param)
         self.gen_depend_map()
 
         tests = []

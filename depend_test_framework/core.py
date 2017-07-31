@@ -70,8 +70,9 @@ class CheckPoint(Entrypoint):
     """
     CheckPoint
     """
-    def __init__(self, test_level):
+    def __init__(self, test_level, version=None):
         self.test_level = test_level
+        self.version = version
         self.checkpoints = None
 
     def bind(self, checkpoints):
@@ -85,8 +86,9 @@ class Action(Entrypoint):
     """
     Action
     """
-    def __init__(self, test_level):
+    def __init__(self, test_level, version=None):
         self.test_level = test_level
+        self.version = version
         self.actions = None
 
     def bind(self, actions):
@@ -101,8 +103,9 @@ class Hybrid(Entrypoint):
     Action + CheckPoint + ...
     Only work with function have yield 
     """
-    def __init__(self, test_level):
+    def __init__(self, test_level, version=None):
         self.test_level = test_level
+        self.version = version
         self.actions = None
         self.checkpoints = None
 
