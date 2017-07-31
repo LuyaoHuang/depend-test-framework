@@ -187,12 +187,18 @@ class Engine(object):
                 consumers.add(func)
         return consumers
 
-    def run_one_case(self, func):
-        func(self.params, self.env)
+    def run_one_case(self, func, check=True):
+        with prefix_logger(LOGGER, "\033[94mAction:\033[0m", new_name=func.__module__):
+            func(self.params, self.env)
         self.env = self.env.gen_transfer_env(func)
+        if not check:
+            return
         checkpoints = self.find_checkpoints()
-        for checkpoint in checkpoints:
-            checkpoint(self.params, self.env)
+        for i, checkpoint in enumerate(checkpoints):
+           # if checkpoint.__doc__:
+           #     LOGGER.info("Desciption: %s", checkpoint.__doc__)
+            with prefix_logger(LOGGER, "\033[92mCheckpoint%s:\033[0m" % str(i+1), new_name=checkpoint.__module__):
+                checkpoint(self.params, self.env)
 
 class Template(Engine):
     pass
@@ -222,6 +228,7 @@ class Demo(Engine):
 
     def run(self, params):
         self.params = params
+        self.params.logger = LOGGER
         self.filter_func()
         self.gen_depend_map()
 
@@ -264,7 +271,6 @@ class Demo(Engine):
                 else:
                     cleanup_case = random.choice(cleanup)
                     for func in cleanup_case:
-                        func(self.params, self.env)
-                        self.env = self.env.gen_transfer_env(func)
+                        self.run_one_case(func, False)
                 LOGGER.info("Current Env: %s", self.env)
                 LOGGER.info("")

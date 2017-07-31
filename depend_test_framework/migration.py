@@ -16,6 +16,6 @@ def migrate(params, env):
     guest_name = params.guest_name
     cmd = 'virsh migrate %s qemu+ssh://%s/system --live' % (guest_name, target)
     if params.mock:
-        LOGGER.info("Mock: " + cmd)
+        params.logger.info("Mock: " + cmd)
         return
     run_cmd(cmd)

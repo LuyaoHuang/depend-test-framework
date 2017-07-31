@@ -3,7 +3,6 @@ from core import Action, ParamsRequire, Provider, Consumer
 from log import get_logger, prefix_logger, make_prefix_logger
 
 LOGGER = get_logger(__name__)
-ACT_LOGGER = make_prefix_logger(LOGGER, "\033[94mActions:\033[0m")
 
 PARAM = {}
 ENV = {}
@@ -17,7 +16,7 @@ def start_guest(params, env):
     guest = params.guest_name
     cmd = 'virsh start ' + guest
     if params.mock:
-        ACT_LOGGER("Mock: " + cmd)
+        params.logger.info("Mock: " + cmd)
         return
     run_cmd(cmd)
 
@@ -30,6 +29,6 @@ def destroy_guest(params, env):
     guest = params.guest_name
     cmd = 'virsh destroy ' + guest
     if params.mock:
-        ACT_LOGGER("Mock: " + cmd)
+        params.logger.info("Mock: " + cmd)
         return
     run_cmd(cmd)

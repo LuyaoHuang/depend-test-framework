@@ -49,12 +49,15 @@ def get_logger(name, level=logging.INFO, prefix=""):
     return logger
 
 @contextmanager
-def prefix_logger(logger, prefix, level=logging.DEBUG):
+def prefix_logger(logger, prefix, level=logging.DEBUG, new_name=None):
     old_logger_fmt = logger.handlers[0].formatter._fmt
 
     new_fmt_list = old_logger_fmt.split()
     new_fmt_list.insert(-1, prefix)
     new_fmt = " ".join(new_fmt_list)
+    if new_name:
+        # TODO
+        new_fmt = new_fmt.replace("%(name)-10s", "%-10s" % new_name)
     formatter = logging.Formatter(new_fmt)
     logger.handlers[0].setFormatter(formatter)
     try:
