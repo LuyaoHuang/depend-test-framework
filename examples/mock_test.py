@@ -1,7 +1,7 @@
-from core import Action, ParamsRequire, Provider, Consumer, CheckPoint, TestObject
-from log import get_logger
+from utils import enter_depend_test
+enter_depend_test()
 
-LOGGER = get_logger(__name__)
+from depend_test_framework.core import Action, ParamsRequire, Provider, Consumer, CheckPoint, TestObject
 
 
 @Action.decorator(1)

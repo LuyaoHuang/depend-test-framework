@@ -1,9 +1,9 @@
 from utils import run_cmd
-from core import Action, ParamsRequire, Provider, Consumer
+from utils import enter_depend_test
+enter_depend_test()
 
-from log import get_logger, prefix_logger
+from depend_test_framework.core import Action, ParamsRequire, Provider, Consumer
 
-LOGGER = get_logger(__name__)
 
 @Action.decorator(1)
 @ParamsRequire.decorator(['guest_name', 'target_host'])

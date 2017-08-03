@@ -1,0 +1,160 @@
+2017-08-03 14:14:27,804 | INFO | depend_test_framework.engine |  Remove func <function destroy_guest at 0x7f2961407e60>
+2017-08-03 14:14:27,804 | INFO | depend_test_framework.engine |  Remove func <function set_maxmem_xml at 0x7f2961407aa0>
+2017-08-03 14:14:27,804 | INFO | depend_test_framework.engine |  Remove func <function migrate at 0x7f2961407ed8>
+2017-08-03 14:14:27,804 | INFO | depend_test_framework.engine |  Remove func <function hot_plug_mem at 0x7f2961407b18>
+2017-08-03 14:14:27,805 | INFO | depend_test_framework.engine |  Remove func <function migrate_guest at 0x7f2961407b90>
+2017-08-03 14:14:27,805 | INFO | depend_test_framework.engine |  Remove func <function vcpu_hotplug at 0x7f29614079b0>
+2017-08-03 14:14:27,805 | INFO | depend_test_framework.engine |  Remove func <function start_guest at 0x7f2961407de8>
+2017-08-03 14:14:27,805 | INFO | depend_test_framework.engine |  Remove func <function check_mem_in_guest at 0x7f2961407c08>
+2017-08-03 14:14:27,805 | INFO | depend_test_framework.engine |  Remove func <function check_mem_from_xml at 0x7f2961407938>
+2017-08-03 14:14:27,805 | INFO | depend_test_framework.engine |  ======== hot_plug_mem ========
+2017-08-03 14:14:27,805 | INFO | depend_test_framework.engine |  
+2017-08-03 14:15:09,929 | INFO | depend_test_framework.engine |  Remove func <function destroy_guest at 0x7fee59607e60>
+2017-08-03 14:15:09,929 | INFO | depend_test_framework.engine |  Remove func <function set_maxmem_xml at 0x7fee59607aa0>
+2017-08-03 14:15:09,930 | INFO | depend_test_framework.engine |  Remove func <function migrate at 0x7fee59607ed8>
+2017-08-03 14:15:09,930 | INFO | depend_test_framework.engine |  Remove func <function hot_plug_mem at 0x7fee59607b18>
+2017-08-03 14:15:09,930 | INFO | depend_test_framework.engine |  Remove func <function migrate_guest at 0x7fee59607b90>
+2017-08-03 14:15:09,930 | INFO | depend_test_framework.engine |  Remove func <function vcpu_hotplug at 0x7fee596079b0>
+2017-08-03 14:15:09,930 | INFO | depend_test_framework.engine |  Remove func <function start_guest at 0x7fee59607de8>
+2017-08-03 14:15:09,930 | INFO | depend_test_framework.engine |  Remove func <function check_mem_in_guest at 0x7fee59607c08>
+2017-08-03 14:15:09,930 | INFO | depend_test_framework.engine |  Remove func <function check_mem_from_xml at 0x7fee59607938>
+2017-08-03 14:15:09,931 | INFO | depend_test_framework.engine |  ======== vcpu_hotplug ========
+2017-08-03 14:15:09,931 | INFO | depend_test_framework.engine |  
+2017-08-03 14:15:50,257 | INFO | depend_test_framework.engine |  Remove func <function migrate at 0x7f912c4c7ed8>
+2017-08-03 14:15:50,259 | INFO | depend_test_framework.engine |  ======== hot_plug_mem ========
+2017-08-03 14:15:50,259 | INFO | depend_test_framework.engine |  
+2017-08-03 14:15:50,259 | INFO | depend_test_framework.engine |  ======== case 1 ========
+2017-08-03 14:15:50,259 | INFO | depend_test_framework.engine |  set vm1 maxmem to 1024
+2017-08-03 14:15:50,260 | INFO | depend_test_framework.engine |  Desciption: check vcpu infomation from guest xml
+2017-08-03 14:15:50,260 | INFO | depend_test_framework.engine |  Checking guest cpu info from xml
+2017-08-03 14:15:50,260 | INFO | depend_test_framework.engine |  Checking guest memory in xml
+2017-08-03 14:15:50,260 | INFO | depend_test_framework.engine |  migrate running guest vm1 from "source host" to this test env
+2017-08-03 14:15:50,260 | INFO | depend_test_framework.engine |  Checking guest cpu in guest
+2017-08-03 14:15:50,261 | INFO | depend_test_framework.engine |  Desciption: check vcpu infomation from guest xml
+2017-08-03 14:15:50,261 | INFO | depend_test_framework.engine |  Checking guest cpu info from xml
+2017-08-03 14:15:50,261 | INFO | depend_test_framework.engine |  Checking guest memory in xml
+2017-08-03 14:15:50,261 | INFO | depend_test_framework.engine |  set running guest vm1 mem to 512
+2017-08-03 14:15:50,261 | INFO | depend_test_framework.engine |  Checking guest cpu in guest
+2017-08-03 14:15:50,261 | INFO | depend_test_framework.engine |  Desciption: check vcpu infomation from guest xml
+2017-08-03 14:15:50,261 | INFO | depend_test_framework.engine |  Checking guest cpu info from xml
+2017-08-03 14:15:50,262 | INFO | depend_test_framework.engine |  Checking guest memory in xml
+2017-08-03 14:15:50,262 | INFO | depend_test_framework.engine |  Cannot find clean up way
+2017-08-03 14:15:50,262 | INFO | depend_test_framework.engine |  Current Env: {'$guest_name': {'active': True, 'have_maxmem': True}}
+2017-08-03 14:15:50,262 | INFO | depend_test_framework.engine |  
+2017-08-03 14:15:50,262 | INFO | depend_test_framework.engine |  ======== case 2 ========
+2017-08-03 14:15:50,262 | INFO | depend_test_framework.engine |  set vm1 maxmem to 1024
+2017-08-03 14:15:50,262 | INFO | depend_test_framework.engine |  Desciption: check vcpu infomation from guest xml
+2017-08-03 14:15:50,263 | INFO | depend_test_framework.engine |  Checking guest cpu info from xml
+2017-08-03 14:15:50,263 | INFO | depend_test_framework.engine |  Checking guest memory in xml
+2017-08-03 14:15:50,263 | INFO | depend_test_framework.engine |  Mock: virsh start vm1
+2017-08-03 14:15:50,263 | INFO | depend_test_framework.engine |  Checking guest cpu in guest
+2017-08-03 14:15:50,263 | INFO | depend_test_framework.engine |  Desciption: check vcpu infomation from guest xml
+2017-08-03 14:15:50,263 | INFO | depend_test_framework.engine |  Checking guest cpu info from xml
+2017-08-03 14:15:50,264 | INFO | depend_test_framework.engine |  Checking guest memory in xml
+2017-08-03 14:15:50,264 | INFO | depend_test_framework.engine |  set running guest vm1 mem to 512
+2017-08-03 14:15:50,264 | INFO | depend_test_framework.engine |  Checking guest cpu in guest
+2017-08-03 14:15:50,264 | INFO | depend_test_framework.engine |  Desciption: check vcpu infomation from guest xml
+2017-08-03 14:15:50,264 | INFO | depend_test_framework.engine |  Checking guest cpu info from xml
+2017-08-03 14:15:50,264 | INFO | depend_test_framework.engine |  Checking guest memory in xml
+2017-08-03 14:15:50,264 | INFO | depend_test_framework.engine |  Cannot find clean up way
+2017-08-03 14:15:50,265 | INFO | depend_test_framework.engine |  Current Env: {'$guest_name': {'active': True, 'have_maxmem': True}}
+2017-08-03 14:15:50,265 | INFO | depend_test_framework.engine |  
+2017-08-03 14:15:50,265 | INFO | depend_test_framework.engine |  ======== vcpu_hotplug ========
+2017-08-03 14:15:50,265 | INFO | depend_test_framework.engine |  
+2017-08-03 14:15:50,265 | INFO | depend_test_framework.engine |  ======== case 1 ========
+2017-08-03 14:15:50,265 | INFO | depend_test_framework.engine |  migrate running guest vm1 from "source host" to this test env
+2017-08-03 14:15:50,266 | INFO | depend_test_framework.engine |  Checking guest cpu in guest
+2017-08-03 14:15:50,266 | INFO | depend_test_framework.engine |  Desciption: check vcpu infomation from guest xml
+2017-08-03 14:15:50,266 | INFO | depend_test_framework.engine |  Checking guest cpu info from xml
+2017-08-03 14:15:50,266 | INFO | depend_test_framework.engine |  Checking guest memory in xml
+2017-08-03 14:15:50,267 | INFO | depend_test_framework.engine |  hotplug vcpu to 10
+2017-08-03 14:15:50,267 | INFO | depend_test_framework.engine |  Checking guest cpu in guest
+2017-08-03 14:15:50,267 | INFO | depend_test_framework.engine |  Desciption: check vcpu infomation from guest xml
+2017-08-03 14:15:50,267 | INFO | depend_test_framework.engine |  Checking guest cpu info from xml
+2017-08-03 14:15:50,267 | INFO | depend_test_framework.engine |  Checking guest memory in xml
+2017-08-03 14:15:50,268 | INFO | depend_test_framework.engine |  Mock: virsh destroy vm1
+2017-08-03 14:15:50,268 | INFO | depend_test_framework.engine |  Current Env: {}
+2017-08-03 14:15:50,268 | INFO | depend_test_framework.engine |  
+2017-08-03 14:15:50,268 | INFO | depend_test_framework.engine |  ======== case 2 ========
+2017-08-03 14:15:50,268 | INFO | depend_test_framework.engine |  Mock: virsh start vm1
+2017-08-03 14:15:50,268 | INFO | depend_test_framework.engine |  Checking guest cpu in guest
+2017-08-03 14:15:50,269 | INFO | depend_test_framework.engine |  Desciption: check vcpu infomation from guest xml
+2017-08-03 14:15:50,269 | INFO | depend_test_framework.engine |  Checking guest cpu info from xml
+2017-08-03 14:15:50,269 | INFO | depend_test_framework.engine |  Checking guest memory in xml
+2017-08-03 14:15:50,269 | INFO | depend_test_framework.engine |  hotplug vcpu to 10
+2017-08-03 14:15:50,269 | INFO | depend_test_framework.engine |  Checking guest cpu in guest
+2017-08-03 14:15:50,269 | INFO | depend_test_framework.engine |  Desciption: check vcpu infomation from guest xml
+2017-08-03 14:15:50,269 | INFO | depend_test_framework.engine |  Checking guest cpu info from xml
+2017-08-03 14:15:50,270 | INFO | depend_test_framework.engine |  Checking guest memory in xml
+2017-08-03 14:15:50,270 | INFO | depend_test_framework.engine |  Mock: virsh destroy vm1
+2017-08-03 14:15:50,270 | INFO | depend_test_framework.engine |  Current Env: {}
+2017-08-03 14:15:50,270 | INFO | depend_test_framework.engine |  
+2017-08-03 14:15:54,810 | INFO | depend_test_framework.engine |  Remove func <function migrate at 0x7f135ea97ed8>
+2017-08-03 14:15:54,811 | INFO | depend_test_framework.engine |  ======== vcpu_hotplug ========
+2017-08-03 14:15:54,811 | INFO | depend_test_framework.engine |  
+2017-08-03 14:15:54,812 | INFO | depend_test_framework.engine |  ======== case 1 ========
+2017-08-03 14:15:54,812 | INFO | depend_test_framework.engine |  migrate running guest vm1 from "source host" to this test env
+2017-08-03 14:15:54,812 | INFO | depend_test_framework.engine |  Checking guest cpu in guest
+2017-08-03 14:15:54,812 | INFO | depend_test_framework.engine |  Desciption: check vcpu infomation from guest xml
+2017-08-03 14:15:54,812 | INFO | depend_test_framework.engine |  Checking guest cpu info from xml
+2017-08-03 14:15:54,812 | INFO | depend_test_framework.engine |  Checking guest memory in xml
+2017-08-03 14:15:54,813 | INFO | depend_test_framework.engine |  hotplug vcpu to 10
+2017-08-03 14:15:54,813 | INFO | depend_test_framework.engine |  Checking guest cpu in guest
+2017-08-03 14:15:54,813 | INFO | depend_test_framework.engine |  Desciption: check vcpu infomation from guest xml
+2017-08-03 14:15:54,813 | INFO | depend_test_framework.engine |  Checking guest cpu info from xml
+2017-08-03 14:15:54,813 | INFO | depend_test_framework.engine |  Checking guest memory in xml
+2017-08-03 14:15:54,813 | INFO | depend_test_framework.engine |  Mock: virsh destroy vm1
+2017-08-03 14:15:54,814 | INFO | depend_test_framework.engine |  Current Env: {}
+2017-08-03 14:15:54,814 | INFO | depend_test_framework.engine |  
+2017-08-03 14:15:54,814 | INFO | depend_test_framework.engine |  ======== case 2 ========
+2017-08-03 14:15:54,814 | INFO | depend_test_framework.engine |  Mock: virsh start vm1
+2017-08-03 14:15:54,814 | INFO | depend_test_framework.engine |  Checking guest cpu in guest
+2017-08-03 14:15:54,814 | INFO | depend_test_framework.engine |  Desciption: check vcpu infomation from guest xml
+2017-08-03 14:15:54,815 | INFO | depend_test_framework.engine |  Checking guest cpu info from xml
+2017-08-03 14:15:54,815 | INFO | depend_test_framework.engine |  Checking guest memory in xml
+2017-08-03 14:15:54,815 | INFO | depend_test_framework.engine |  hotplug vcpu to 10
+2017-08-03 14:15:54,815 | INFO | depend_test_framework.engine |  Checking guest cpu in guest
+2017-08-03 14:15:54,815 | INFO | depend_test_framework.engine |  Desciption: check vcpu infomation from guest xml
+2017-08-03 14:15:54,815 | INFO | depend_test_framework.engine |  Checking guest cpu info from xml
+2017-08-03 14:15:54,815 | INFO | depend_test_framework.engine |  Checking guest memory in xml
+2017-08-03 14:15:54,816 | INFO | depend_test_framework.engine |  Mock: virsh destroy vm1
+2017-08-03 14:15:54,816 | INFO | depend_test_framework.engine |  Current Env: {}
+2017-08-03 14:15:54,816 | INFO | depend_test_framework.engine |  
+2017-08-03 14:15:54,816 | INFO | depend_test_framework.engine |  ======== hot_plug_mem ========
+2017-08-03 14:15:54,816 | INFO | depend_test_framework.engine |  
+2017-08-03 14:15:54,816 | INFO | depend_test_framework.engine |  ======== case 1 ========
+2017-08-03 14:15:54,817 | INFO | depend_test_framework.engine |  set vm1 maxmem to 1024
+2017-08-03 14:15:54,817 | INFO | depend_test_framework.engine |  Desciption: check vcpu infomation from guest xml
+2017-08-03 14:15:54,817 | INFO | depend_test_framework.engine |  Checking guest cpu info from xml
+2017-08-03 14:15:54,817 | INFO | depend_test_framework.engine |  Checking guest memory in xml
+2017-08-03 14:15:54,817 | INFO | depend_test_framework.engine |  migrate running guest vm1 from "source host" to this test env
+2017-08-03 14:15:54,817 | INFO | depend_test_framework.engine |  Checking guest cpu in guest
+2017-08-03 14:15:54,818 | INFO | depend_test_framework.engine |  Desciption: check vcpu infomation from guest xml
+2017-08-03 14:15:54,818 | INFO | depend_test_framework.engine |  Checking guest cpu info from xml
+2017-08-03 14:15:54,818 | INFO | depend_test_framework.engine |  Checking guest memory in xml
+2017-08-03 14:15:54,818 | INFO | depend_test_framework.engine |  set running guest vm1 mem to 512
+2017-08-03 14:15:54,818 | INFO | depend_test_framework.engine |  Checking guest cpu in guest
+2017-08-03 14:15:54,818 | INFO | depend_test_framework.engine |  Desciption: check vcpu infomation from guest xml
+2017-08-03 14:15:54,819 | INFO | depend_test_framework.engine |  Checking guest cpu info from xml
+2017-08-03 14:15:54,819 | INFO | depend_test_framework.engine |  Checking guest memory in xml
+2017-08-03 14:15:54,819 | INFO | depend_test_framework.engine |  Cannot find clean up way
+2017-08-03 14:15:54,819 | INFO | depend_test_framework.engine |  Current Env: {'$guest_name': {'active': True, 'have_maxmem': True}}
+2017-08-03 14:15:54,819 | INFO | depend_test_framework.engine |  
+2017-08-03 14:15:54,819 | INFO | depend_test_framework.engine |  ======== case 2 ========
+2017-08-03 14:15:54,819 | INFO | depend_test_framework.engine |  set vm1 maxmem to 1024
+2017-08-03 14:15:54,820 | INFO | depend_test_framework.engine |  Desciption: check vcpu infomation from guest xml
+2017-08-03 14:15:54,820 | INFO | depend_test_framework.engine |  Checking guest cpu info from xml
+2017-08-03 14:15:54,820 | INFO | depend_test_framework.engine |  Checking guest memory in xml
+2017-08-03 14:15:54,820 | INFO | depend_test_framework.engine |  Mock: virsh start vm1
+2017-08-03 14:15:54,820 | INFO | depend_test_framework.engine |  Checking guest cpu in guest
+2017-08-03 14:15:54,820 | INFO | depend_test_framework.engine |  Desciption: check vcpu infomation from guest xml
+2017-08-03 14:15:54,820 | INFO | depend_test_framework.engine |  Checking guest cpu info from xml
+2017-08-03 14:15:54,821 | INFO | depend_test_framework.engine |  Checking guest memory in xml
+2017-08-03 14:15:54,821 | INFO | depend_test_framework.engine |  set running guest vm1 mem to 512
+2017-08-03 14:15:54,821 | INFO | depend_test_framework.engine |  Checking guest cpu in guest
+2017-08-03 14:15:54,821 | INFO | depend_test_framework.engine |  Desciption: check vcpu infomation from guest xml
+2017-08-03 14:15:54,821 | INFO | depend_test_framework.engine |  Checking guest cpu info from xml
+2017-08-03 14:15:54,821 | INFO | depend_test_framework.engine |  Checking guest memory in xml
+2017-08-03 14:15:54,822 | INFO | depend_test_framework.engine |  Cannot find clean up way
+2017-08-03 14:15:54,822 | INFO | depend_test_framework.engine |  Current Env: {'$guest_name': {'active': True, 'have_maxmem': True}}
+2017-08-03 14:15:54,822 | INFO | depend_test_framework.engine |  

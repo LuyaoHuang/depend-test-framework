@@ -2,9 +2,11 @@
 Cpu related test
 """
 
-from utils import run_cmd
+from utils import enter_depend_test, run_cmd
+enter_depend_test()
+
 import types
-from core import Action, CheckPoint
+from depend_test_framework.core import Action, CheckPoint
 
 PARAM = {'target_vcpu': types.IntType,}
 ENV = {'cpu_status': types.DictType}

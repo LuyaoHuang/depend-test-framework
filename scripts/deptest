@@ -1,0 +1,80 @@
+#!/usr/bin/env python
+"""
+TODO: only use for debugging
+"""
+import os
+import sys
+
+# Simple magic for using scripts within a source tree
+BASEDIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(BASEDIR, 'depend_test_framework')):
+    os.environ['PATH'] += ":" + os.path.join(BASEDIR, 'scripts')
+    sys.path.insert(0, BASEDIR)
+
+from depend_test_framework.engine import Demo
+from depend_test_framework.core import Params
+import argparse
+import importlib
+
+
+def parse_cmd():
+    parser = argparse.ArgumentParser(description='Depend Test Framework debug command')
+    parser.add_argument('--engine', dest='engine', action='store',
+                        default="Demo",
+                        help='Which engine')
+    parser.add_argument('--params', dest='params', action='store',
+                        default="",
+                        help='params will pass to test')
+    parser.add_argument('--params-config', dest='params_conf', action='store',
+                        help='config file of params will pass to test')
+    parser.add_argument('--test-objs', dest='test_objs', action='store',
+                        default="",
+                        help='test objs')
+    parser.add_argument('--modules', dest='modules', action='store',
+                        default="",
+                        help='modules will be used')
+    parser.add_argument('--mock', dest='mock', action='store_true',
+                        help='Need mock all test steps')
+    args = parser.parse_args()
+    return args
+
+
+def load_modules(modules_str):
+    # TODO
+    cmd_folder = os.path.realpath('.')
+    sys.path.insert(0, cmd_folder)
+    for module in modules_str.split(','):
+        yield importlib.import_module(module)
+
+def load_objs(test_objs_str):
+    # TODO: only support 2 layer
+    for test_obj in test_objs_str.split(','):
+        tmp_module = importlib.import_module(test_obj.split('.')[0])
+        yield getattr(tmp_module, test_obj.split('.')[1], None)
+
+def load_params(params_str, params_conf=None):
+    params = Params()
+    if params_conf:
+        import yaml
+        with open(params_conf) as fp:
+            data = yaml.load(fp)
+            for key, val in data.items():
+                setattr(params, key, val)
+    if params_str:
+        for param_str in params_str.split(';'):
+            key, value = param_str.split('=')
+            setattr(params, key, value)
+    return params
+
+def main():
+    args = parse_cmd()
+    modules_gen = load_modules(args.modules)
+    test_objs_gen = load_objs(args.test_objs)
+    d = Demo(list(modules_gen), test_funcs=list(test_objs_gen))
+    params = load_params(args.params, args.params_conf)
+    if args.mock:
+        params.mock = True
+    d.run(params)
+
+if __name__ == '__main__':
+    main()

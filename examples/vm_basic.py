@@ -1,8 +1,8 @@
-from utils import run_cmd
-from core import Action, ParamsRequire, Provider, Consumer
-from log import get_logger, prefix_logger, make_prefix_logger
+from utils import enter_depend_test, run_cmd
+enter_depend_test()
 
-LOGGER = get_logger(__name__)
+from depend_test_framework.core import Action, ParamsRequire, Provider, Consumer
+
 
 PARAM = {}
 ENV = {}
