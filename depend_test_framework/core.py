@@ -226,6 +226,12 @@ class Env(dict):
     def __setattr__(self, key, value):
         self[key] = value
 
+    def find_data(self, path):
+        return self._get_data_from_path(path, True)
+
+    def set_data(self, path, value):
+        self._set_data_from_path(path, value)
+
     def _get_data_from_path(self, path, use_getattr=False):
         if not path:
             return self
@@ -241,6 +247,7 @@ class Env(dict):
         return tmp_env
 
     def _set_data_from_path(self, path, value):
+        # TODO: refactor this class, this looks ugly
         split_path = path.split('.')
         if value is False:
             # TODO
@@ -252,6 +259,10 @@ class Env(dict):
                 self._set_data_from_path('.'.join(split_path[:-1]), False)
         else:
             env = self._get_data_from_path('.'.join(split_path[:-1]), True)
+            if env is True and value is not True:
+                env = self._get_data_from_path('.'.join(split_path[:-2]), True)
+                env[split_path[-2]] = self.__class__()
+                env = env[split_path[-2]]
             env[split_path[-1]] = value
 
     def hit_require(self, depend):

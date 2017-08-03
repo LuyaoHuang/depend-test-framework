@@ -3,3 +3,4 @@ new_vcpu: 10
 maxmem: 1024
 target_mem: 512
 src_host: 'source host'
+cpu_plug: 'up'

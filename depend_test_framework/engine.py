@@ -179,6 +179,10 @@ class Engine(object):
 
     def run_one_step(self, func, check=True):
         with prefix_logger(LOGGER, "\033[94mAction:\033[0m", new_name=func.__module__):
+            # TODO
+            if is_TestObject(func):
+                func = func()
+
             func(self.params, self.env)
         self.env = self.env.gen_transfer_env(func)
         if not check:
@@ -242,8 +246,12 @@ class Demo(Engine):
             order = []
             test_func = random.choice(test_funcs)
             test_funcs.remove(test_func)
+            if getattr(test_func, 'func_name', None):
+                title = getattr(test_func, 'func_name')
+            else:
+                title = str(test_func)
 
-            LOGGER.info("=" * 8 + " %s " % test_func.func_name + "=" * 8)
+            LOGGER.info("=" * 8 + " %s " % title + "=" * 8)
             LOGGER.info("")
             cases = self.compute_route_permutations(test_func)
             cleanup = self.compute_route_permutations(test_func, True)
