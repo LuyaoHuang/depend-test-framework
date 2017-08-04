@@ -164,7 +164,7 @@ class Engine(object):
                     continue
                 data = dep_map[env_key]
                 data.setdefault(tmp_e, []).append(func)
-        LOGGER.info(pretty(dep_map))
+        LOGGER.debug(pretty(dep_map))
         self.dep_map = dep_map
 
     def replace_depend_with_param(self, depend):

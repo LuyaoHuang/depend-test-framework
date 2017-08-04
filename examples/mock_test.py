@@ -16,11 +16,22 @@ def vcpu_hotplug(params, env):
 @Action.decorator(1)
 @ParamsRequire.decorator(['guest_name', 'maxmem'])
 @Consumer.decorator('$guest_name.active', Consumer.REQUIRE_N)
+@Consumer.decorator('$guest_name.config', Consumer.REQUIRE)
 @Provider.decorator('$guest_name.have_maxmem', Provider.SET)
 def set_maxmem_xml(params, env):
     assert params.guest_name
     assert params.maxmem
     params.logger.info('set %s maxmem to %d' % (params.guest_name, params.maxmem))
+
+
+@Action.decorator(1)
+@ParamsRequire.decorator(['guest_name', 'maxmem'])
+@Consumer.decorator('$guest_name.config', Consumer.REQUIRE)
+@Provider.decorator('$guest_name.have_maxmem', Provider.CLEAR)
+def rm_maxmem_xml(params, env):
+    assert params.guest_name
+    assert params.maxmem
+    params.logger.info('remove %s maxmem in xml' % (params.guest_name))
 
 
 @Action.decorator(1)
@@ -34,7 +45,7 @@ def hot_plug_mem(params, env):
 
 
 @Action.decorator(1)
-@ParamsRequire.decorator(['guest_name', 'src_host'])
+@ParamsRequire.decorator(['guest_name', 'src_host', 'disable'])
 @Consumer.decorator('$guest_name.active', Consumer.REQUIRE_N)
 @Provider.decorator('$guest_name.active', Provider.SET)
 def migrate_guest(params, env):
