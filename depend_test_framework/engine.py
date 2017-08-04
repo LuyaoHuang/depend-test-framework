@@ -73,14 +73,21 @@ class Engine(object):
     def compute_full_steps(self, steps):
         pass
 
-    def compute_route_permutations(self, func, cleanup=False):
-        target_env = Env.gen_require_env(func)
+    def find_suit_envs(self, env):
         if not self.dep_map:
             raise Exception('Need gen depend map first')
+        for key_env in self.dep_map.keys():
+            if env <= key_env:
+                yield key_env
+
+    def compute_route_permutations(self, target_env, cleanup=False, src_env=None):
+        if not self.dep_map:
+            raise Exception('Need gen depend map first')
+        base_env = src_env if src_env else self.env
         if cleanup:
-            routes = route_permutations(self.dep_map, target_env, self.env)
+            routes = route_permutations(self.dep_map, target_env, base_env)
         else:
-            routes = route_permutations(self.dep_map, self.env, target_env)
+            routes = route_permutations(self.dep_map, base_env, target_env)
         ret_routes = []
         for route in routes:
             ret_routes.extend(itertools.product(*route))
@@ -157,7 +164,7 @@ class Engine(object):
                     continue
                 data = dep_map[env_key]
                 data.setdefault(tmp_e, []).append(func)
-        LOGGER.debug(pretty(dep_map))
+        LOGGER.info(pretty(dep_map))
         self.dep_map = dep_map
 
     def replace_depend_with_param(self, depend):
@@ -185,6 +192,7 @@ class Engine(object):
 
             func(self.params, self.env)
         self.env = self.env.gen_transfer_env(func)
+        LOGGER.debug("Env: %s, func: %s", self.env, func)
         if not check:
             return
         checkpoints = self.find_checkpoints()
@@ -241,6 +249,7 @@ class Demo(Engine):
         while test_funcs:
             # TODO
             self.env = Env()
+            i = 1
 
             test_case = OrderedDict()
             order = []
@@ -253,23 +262,23 @@ class Demo(Engine):
 
             LOGGER.info("=" * 8 + " %s " % title + "=" * 8)
             LOGGER.info("")
-            cases = self.compute_route_permutations(test_func)
-            cleanup = self.compute_route_permutations(test_func, True)
-            i = 1
-            for case in cases:
-                # TODO
-                self.env = Env()
-
-                LOGGER.info("=" * 8 + " case %d " % i + "=" * 8)
-                for func in case:
-                    self.run_one_step(func)
-                self.run_one_step(test_func)
-                i += 1
-                if not cleanup:
-                    LOGGER.info("Cannot find clean up way")
-                else:
-                    cleanup_case = random.choice(cleanup)
-                    for func in cleanup_case:
-                        self.run_one_step(func, False)
-                LOGGER.info("Current Env: %s", self.env)
-                LOGGER.info("")
+            target_env = Env.gen_require_env(test_func)
+            for tgt_env in self.find_suit_envs(target_env):
+                cases = self.compute_route_permutations(tgt_env)
+                cleanup = self.compute_route_permutations(tgt_env, True)
+                for case in cases:
+                    # TODO
+                    LOGGER.info("=" * 8 + " case %d " % i + "=" * 8)
+                    for func in case:
+                        self.run_one_step(func)
+                    self.run_one_step(test_func)
+                    i += 1
+                    if not cleanup:
+                        LOGGER.info("Cannot find clean up way")
+                    else:
+                        cleanup_case = random.choice(cleanup)
+                        for func in cleanup_case:
+                            self.run_one_step(func, False)
+                    LOGGER.info("Current Env: %s", self.env)
+                    LOGGER.info("")
+                    self.env = Env()

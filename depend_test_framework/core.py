@@ -20,13 +20,7 @@ def register_entrypoint(fn, entrypoint):
     descriptors.add(entrypoint)
 
 def get_entrypoint(fn):
-    if isinstance(fn, types.FunctionType):
-        return getattr(fn, '_test_entry', None)
-    try:
-        if issubclass(fn, TestObject):
-            return getattr(fn, '_test_entry', None)
-    except TypeError:
-        return
+    return getattr(fn, '_test_entry', None)
 
 class TestObject(object):
     _test_entry = set()
@@ -212,41 +206,77 @@ class Params(dict):
 class Memory(Container):
     pass
 
-class Env(dict):
+class Env(object):
     """
     TODO
     """
-    def __getattr__(self, key):
-        value = self.get(key)
+    def __init__(self, data=None, parent=None, childs=None):
+        self.data = data
+        self.parent = parent
+        self.childs = childs if childs else {}
+
+#    def __getattr__(self, key):
+#        value = self.get(key)
+#        if not value and not key.startswith("_"):
+#            value = child_env = self.__class__()
+#            self[key] = child_env
+#        return value
+
+#    def __setattr__(self, key, value):
+#        if isinstance(value, self.__class__):
+#            self[key] = value
+#        else:
+#            super(Env, self).__setattr__('_data', value)
+
+    def __getitem__(self, key):
+        value = self.childs.get(key)
         if not value and not key.startswith("_"):
-            value = child_env = self.__class__()
-            self[key] = child_env
+            value = child_env = self.__class__(parent=self)
+            self.childs[key] = child_env
         return value
 
-    def __setattr__(self, key, value):
-        self[key] = value
+    def __setitem__(self, key, value):
+        if isinstance(value, self.__class__):
+            self.childs[key] = value
+        else:
+            child_env = self[key]
+            child_env.data = value
 
-    def find_data(self, path):
-        return self._get_data_from_path(path, True)
+    def __str__(self):
+        return self.struct_table()
+
+    def keys(self):
+        return self.childs.keys()
+
+    def values(self):
+        return self.childs.values()
+
+    def items(self):
+        return self.childs.items()
+
+    def get_data(self, path):
+        return self._get_data_from_path(path)
 
     def set_data(self, path, value):
         self._set_data_from_path(path, value)
 
-    def _get_data_from_path(self, path, use_getattr=False):
+    def _get_data_from_path(self, path, use_getitem=False):
         if not path:
             return self
         split_path = path.split('.')
         tmp_env = self
         for data in split_path:
-            if use_getattr:
-                tmp_env = getattr(tmp_env, data, None)
+            if not isinstance(tmp_env, self.__class__):
+                return
+            if use_getitem:
+                tmp_env = tmp_env[data]
             else:
-                tmp_env = tmp_env.get(data)
+                tmp_env = tmp_env.childs.get(data)
             if tmp_env is None:
                 return
         return tmp_env
 
-    def _set_data_from_path(self, path, value):
+    def _set_data_from_path2(self, path, value):
         # TODO: refactor this class, this looks ugly
         split_path = path.split('.')
         if value is False:
@@ -265,6 +295,12 @@ class Env(dict):
                 env = env[split_path[-2]]
             env[split_path[-1]] = value
 
+    def _set_data_from_path(self, path, value):
+        env = self._get_data_from_path(path, True)
+        if not env:
+            raise Exception
+        env.data = value
+
     def hit_require(self, depend):
         if depend.type == Consumer.REQUIRE:
             require = True
@@ -274,8 +310,10 @@ class Env(dict):
             raise NotImplementedError
 
         ret = self._get_data_from_path(depend.env_depend)
-
-        return require == bool(ret)
+        if ret:
+            return require == bool(ret.data)
+        else:
+            return not require
 
     def hit_requires(self, depends):
         for depend in depends:
@@ -326,13 +364,67 @@ class Env(dict):
         return self.__reduce_ex__(None)
 
     def __reduce_ex__(self, protocol):
-        return (self.__class__, (self.items(),),)
+        return (self.__class__, (self.data, self.parent, self.childs),)
 
     def __hash__(self):
         """
         NOTICE: don't change the env if really use this
         """
-        return hash(str(self))
+        return hash(self.struct_table())
+
+    def _full_path(self):
+        path = ''
+        if self.parent:
+            for key, value in self.parent.items():
+                if value == self:
+                    path += '%s' % key
+                    break
+            if self.parent._full_path():
+                path = self.parent._full_path() + '.' +  path
+        return path
+
+    def struct_table(self):
+        if not self.keys():
+            #TODO
+            return '{}'
+        ret = '{'
+        for key, value in self.items():
+            if value.need_fmt():
+                ret += ' %s: %s,' % (key, value.struct_table())
+        ret += '}'
+        return ret
+
+    def __cmp__(self, target):
+        return self.struct_table() == target.struct_table()
+
+    def __eq__(self, target):
+        return self.__cmp__(target)
+
+    def need_fmt(self):
+        for child in self.values():
+            if child.need_fmt():
+                return True
+        if self.data:
+            return True
+        return False
+
+    def __repr__(self):
+        return "<%s path='%s' data='%s'>" % (self.__class__.__name__, self._full_path(), self.data)
+
+    def __le__(self, target):
+        return self._check_include(target)
+
+    def __ge__(self, target):
+        return target._check_include(self)
+
+    def _check_include(self, target):
+        for key, value in self.items():
+            if key not in target.keys():
+                return False
+            if not value._check_include(target[key]):
+                return False
+        return True
+
 
 def is_TestObject(obj):
     try:

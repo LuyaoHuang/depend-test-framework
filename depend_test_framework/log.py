@@ -2,7 +2,7 @@ from contextlib import contextmanager
 import logging
 import time
 
-FMT = '%(asctime)s | %(levelname)-3s | %(name)-10s | {0} %(message)s'
+FMT = '%(asctime)s | %(name)-30s | %(levelname)-3s | {0} %(message)s'
 
 def make_timing_logger(logger, precision=3, level=logging.DEBUG):
     @contextmanager
@@ -57,7 +57,7 @@ def prefix_logger(logger, prefix, level=logging.DEBUG, new_name=None):
     new_fmt = " ".join(new_fmt_list)
     if new_name:
         # TODO
-        new_fmt = new_fmt.replace("%(name)-10s", "%-10s" % new_name)
+        new_fmt = new_fmt.replace("%(name)-30s", "%-30s" % new_name)
     formatter = logging.Formatter(new_fmt)
     logger.handlers[0].setFormatter(formatter)
     try:

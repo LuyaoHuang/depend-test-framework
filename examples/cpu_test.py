@@ -27,14 +27,16 @@ def load_vcpu_status(guest):
 
 @CheckPoint.decorator(1)
 def check_vcpu_number(params, env):
-    guest = env.guest_name
     # load_vcpu_status(guest)
-    if env.find_data('$guest_name.active.cpus'):
-        params.logger.info(env.find_data('$guest_name.active.cpus'))
+    params.logger.info('check if need check vcpu')
+    tmp = env.get_data('$guest_name.active')
+    if tmp and isinstance(tmp.data, dict) and tmp.data.get('cpus'):
+        params.logger.info(tmp.data.get('cpus'))
 
 @CheckPoint.decorator(2)
 def login_guest_check_vcpu(params, env):
     pass
+
 
 class vcpu_hotplug_r(TestObject):
     """Hot plug/unplug guest vcpu"""
@@ -45,13 +47,20 @@ class vcpu_hotplug_r(TestObject):
     def __call__(self, params, env):
         assert params.guest_name
         if params.cpu_plug == 'up':
-            env.set_data('$guest_name.active.cpus', 10)
+            tmp_env = env.get_data('$guest_name.active')
+            if not tmp_env.data or not isinstance(tmp_env.data, dict):
+                tmp_env.data = {}
+            tmp_env.data['cpus'] = 10
             params.logger.info('set guest vcpus to 10')
             # add CPU
         elif params.cpu_plug == 'down':
-            env.set_data('$guest_name.active.cpus', 5)
+            tmp_env = env.get_data('$guest_name.active')
+            if not tmp_env.data or not isinstance(tmp_env.data, dict):
+                tmp_env.data = {}
+            tmp_env.data['cpus'] = 5
             params.logger.info('set guest vcpus to 5')
             # del CPU
+
 
 class vcpu_coldplug(TestObject):
     """Cold plug/unplug guest vcpu"""
@@ -60,4 +69,4 @@ class vcpu_coldplug(TestObject):
 
     def __call__(self, params, env):
         assert params.guest_name
-        params.logger.info("Checking guest cpu info from xml")
+        params.logger.info("change vcpu in guest xml")
