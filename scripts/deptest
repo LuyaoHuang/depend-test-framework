@@ -33,6 +33,9 @@ def parse_cmd():
     parser.add_argument('--modules', dest='modules', action='store',
                         default="",
                         help='modules will be used')
+    parser.add_argument('--doc-modules', dest='doc_modules', action='store',
+                        default="",
+                        help='doc modules will be used to gen test case')
     parser.add_argument('--mock', dest='mock', action='store_true',
                         help='Need mock all test steps')
     args = parser.parse_args()
@@ -69,8 +72,10 @@ def load_params(params_str, params_conf=None):
 def main():
     args = parse_cmd()
     modules_gen = load_modules(args.modules)
+    doc_modules = load_modules(args.doc_modules)
     test_objs_gen = load_objs(args.test_objs)
-    d = Demo(list(modules_gen), test_funcs=list(test_objs_gen))
+    # TODO: support specify test engine
+    d = Demo(list(modules_gen), test_funcs=list(test_objs_gen), doc_modules=list(doc_modules))
     params = load_params(args.params, args.params_conf)
     if args.mock:
         params.mock = True

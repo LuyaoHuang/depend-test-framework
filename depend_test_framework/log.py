@@ -3,6 +3,8 @@ import logging
 import time
 
 FMT = '%(asctime)s | %(name)-30s | %(levelname)-3s | {0} %(message)s'
+FILE_FMT = '%(message)s'
+
 
 def make_timing_logger(logger, precision=3, level=logging.DEBUG):
     @contextmanager
@@ -47,6 +49,22 @@ def get_logger(name, level=logging.INFO, prefix=""):
     logger.addHandler(file_handler)
 
     return logger
+
+
+def get_file_logger(name, file_name, level=logging.INFO):
+    logger = logging.getLogger(name)
+    logger.propagate = False
+    logger.setLevel(level)
+    formatter = logging.Formatter(FILE_FMT)
+
+    # TODO: file put in config
+    file_handler = logging.FileHandler(file_name)
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+    return logger
+
 
 @contextmanager
 def prefix_logger(logger, prefix, level=logging.DEBUG, new_name=None):

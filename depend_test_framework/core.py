@@ -213,8 +213,7 @@ class Env(object):
     def __init__(self, data=None, parent=None, childs=None):
         self.data = data
         self.parent = parent
-        self.childs = childs if childs else {}
-
+        self.childs = childs if childs else {} 
 #    def __getattr__(self, key):
 #        value = self.get(key)
 #        if not value and not key.startswith("_"):
@@ -388,7 +387,7 @@ class Env(object):
             #TODO
             return '{}'
         ret = '{'
-        for key, value in self.items():
+        for key, value in sorted(self.items()):
             if value.need_fmt():
                 ret += ' %s: %s,' % (key, value.struct_table())
         ret += '}'

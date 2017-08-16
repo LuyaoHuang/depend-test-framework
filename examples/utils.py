@@ -2,6 +2,9 @@ import subprocess
 import os
 import sys
 
+STEPS = "\033[96mStep:\033[0m"
+RESULT = "\033[93mResult:\033[0m"
+SETUP = "\033[94mSetup:\033[0m"
 
 def enter_depend_test():
 

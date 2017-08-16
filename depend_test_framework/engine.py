@@ -7,20 +7,24 @@ import random
 from collections import OrderedDict
 from core import is_Action, is_CheckPoint, Container, is_Hybrid, Env, get_all_depend, Params, get_func_params_require, Provider, Consumer, TestObject, is_TestObject
 from utils import pretty
-from log import get_logger, prefix_logger
+from log import get_logger, prefix_logger, get_file_logger
 from algorithms import route_permutations
 
 LOGGER = get_logger(__name__)
 
 
 class Engine(object):
-    def __init__(self, modules):
+    def __init__(self, modules, doc_modules):
         self.modules = modules
+        self.doc_modules = doc_modules
         self.checkpoints = Container()
         self.actions = Container()
         self.hybrids = Container()
+        # TODO: not use dict
+        self.doc_funcs = {}
         self.env = Env()
         self.params = Params()
+        self.dep_map = None
 
         def _handle_func(func, conatiner):
             if is_TestObject(func):
@@ -38,7 +42,12 @@ class Engine(object):
             for _, func in inspect.getmembers(module, is_Hybrid):
                 _handle_func(func, self.hybrids)
 
-        self.dep_map = None
+        # TODO: maybe we should allow the same name func
+        for module in self.doc_modules:
+            for name, func in inspect.getmembers(module, inspect.isfunction):
+                if name in self.doc_funcs.keys():
+                    raise Exception("Use the same func %s in the module %s" % (name, module.__name__))
+                self.doc_funcs[name] = func
 
     def run(self):
         """
@@ -164,7 +173,7 @@ class Engine(object):
                     continue
                 data = dep_map[env_key]
                 data.setdefault(tmp_e, []).append(func)
-        LOGGER.debug(pretty(dep_map))
+        LOGGER.info(pretty(dep_map))
         self.dep_map = dep_map
 
     def replace_depend_with_param(self, depend):
@@ -184,12 +193,44 @@ class Engine(object):
                 consumers.add(func)
         return consumers
 
-    def run_one_step(self, func, check=True):
+    def full_logger(self, msg):
+        #TODO
+        LOGGER.info(msg)
+        self.params.doc_logger.info(msg)
+
+    def gen_one_step_doc(self, func, step_index=None, check=False):
+        if getattr(func, '__name__', None):
+            doc_func_name = func.__name__
+        else:
+            doc_func_name = func.__class__.__name__
+        if step_index is not None:
+            #TODO: move doc_logger definition in basic engine
+            self.params.doc_logger.info('%d.\n' % step_index)
+            step_index += 1
+        if doc_func_name not in self.doc_funcs.keys():
+            self.params.doc_logger.info("Not define %s name in doc modules" % doc_func_name)
+        doc_func = self.doc_funcs[doc_func_name]
+        if doc_func.__doc__:
+            self.params.doc_logger.info("Desciption: %s" % doc_func.__doc__)
+        doc_func(self.params, self.env)
+        if not check:
+            return step_index
+
+        checkpoints = self.find_checkpoints()
+        for i, checkpoint in enumerate(checkpoints):
+            step_index = self.gen_one_step_doc(checkpoint, step_index=step_index)
+
+        return step_index
+
+
+    def run_one_step(self, func, check=True, doc=False):
         with prefix_logger(LOGGER, "\033[94mAction:\033[0m", new_name=func.__module__):
             # TODO
             if is_TestObject(func):
                 func = func()
 
+            if func.__doc__:
+                self.full_logger("Desciption: %s" % func.__doc__)
             func(self.params, self.env)
         self.env = self.env.gen_transfer_env(func)
         LOGGER.debug("Env: %s, func: %s", self.env, func)
@@ -199,8 +240,9 @@ class Engine(object):
         for i, checkpoint in enumerate(checkpoints):
             with prefix_logger(LOGGER, "\033[92mCheckpoint%s:\033[0m" % str(i+1), new_name=checkpoint.__module__):
                 if checkpoint.__doc__:
-                    LOGGER.info("Desciption: %s", checkpoint.__doc__)
+                    self.full_logger("Desciption: %s" % checkpoint.__doc__)
                 checkpoint(self.params, self.env)
+
 
 class Template(Engine):
     pass
@@ -219,23 +261,17 @@ class AI(Engine):
 
 
 class Demo(Engine):
-    def __init__(self, basic_modules, test_modules=None, test_funcs=None):
+    def __init__(self, basic_modules, test_modules=None,
+                 test_funcs=None, doc_modules=None):
         self.test_modules = test_modules
         self.test_funcs = test_funcs
         tmp_modules = []
         tmp_modules.extend(basic_modules)
         if self.test_modules:
             tmp_modules.extend(test_modules)
-        super(Demo, self).__init__(tmp_modules)
+        super(Demo, self).__init__(tmp_modules, doc_modules)
 
-    def run(self, params):
-        self.params = params
-        # TODO
-        self.params.logger = LOGGER
-        self.filter_all_func_custom(self._cb_filter_with_param)
-        self.gen_depend_map()
-
-        tests = []
+    def _prepare_test_funcs(self):
         if not self.test_modules and not self.test_funcs:
             raise Exception('Need give a test object !')
         if self.test_modules:
@@ -245,40 +281,120 @@ class Demo(Engine):
                     test_funcs.add(func)
         else:
             test_funcs = self.test_funcs
+        return test_funcs
+
+    def _excute_test(self, test_func):
+        if getattr(test_func, 'func_name', None):
+            title = getattr(test_func, 'func_name')
+        else:
+            title = str(test_func)
+
+        self.full_logger("=" * 8 + " %s " % title + "=" * 8)
+        self.full_logger("")
+        target_env = Env.gen_require_env(test_func)
+        i = 1
+        for tgt_env in self.find_suit_envs(target_env):
+            cases = self.compute_route_permutations(tgt_env)
+            cleanup = self.compute_route_permutations(tgt_env, True)
+            for case in cases:
+                # TODO
+                self.full_logger("=" * 8 + " case %d " % i + "=" * 8)
+                for func in case:
+                    self.run_one_step(func)
+                self.run_one_step(test_func)
+                i += 1
+                if not cleanup:
+                    LOGGER.info("Cannot find clean up way")
+                else:
+                    cleanup_case = random.choice(cleanup)
+                    for func in cleanup_case:
+                        self.run_one_step(func, False)
+                LOGGER.info("Current Env: %s", self.env)
+                LOGGER.info("")
+                self.env = Env()
+
+    def _gen_test_case_doc(self, test_func, need_cleanup=False):
+        if getattr(test_func, 'func_name', None):
+            title = getattr(test_func, 'func_name')
+        else:
+            title = str(test_func)
+
+        self.full_logger("=" * 8 + " %s " % title + "=" * 8)
+        self.full_logger("")
+        target_env = Env.gen_require_env(test_func)
+        i = 1
+        for tgt_env in self.find_suit_envs(target_env):
+            cases = self.compute_route_permutations(tgt_env)
+            cleanup = self.compute_route_permutations(tgt_env, True)
+            for case in cases:
+                # TODO
+                step_index = 1
+                self.full_logger("=" * 8 + " case %d " % i + "=" * 8)
+                for func in case:
+                    step_index = self.gen_one_step_doc(func, step_index=step_index)
+                step_index = self.gen_one_step_doc(test_func, step_index=step_index)
+                i += 1
+                if need_cleanup:
+                    if not cleanup:
+                        LOGGER.info("Cannot find clean up way")
+                        LOGGER.info("Current Env: %s", self.env)
+                    else:
+                        cleanup_case = random.choice(cleanup)
+                        for func in cleanup_case:
+                            step_index = self.run_one_step(func,  step_index=step_index)
+                self.env = Env()
+
+    def run(self, params):
+        self.params = params
+        # TODO
+        self.params.logger = LOGGER
+        self.params.doc_logger = get_file_logger('test_doc', 'doc.file')
+        self.filter_all_func_custom(self._cb_filter_with_param)
+        self.gen_depend_map()
+
+        tests = []
+        test_funcs = self._prepare_test_funcs()
 
         while test_funcs:
             # TODO
             self.env = Env()
-            i = 1
 
             test_case = OrderedDict()
             order = []
             test_func = random.choice(test_funcs)
             test_funcs.remove(test_func)
+            if self.params.test_case:
+                self._gen_test_case_doc(test_func)
+            else:
+                self._excute_test(test_func)
+            continue
+
             if getattr(test_func, 'func_name', None):
                 title = getattr(test_func, 'func_name')
             else:
                 title = str(test_func)
 
-            LOGGER.info("=" * 8 + " %s " % title + "=" * 8)
-            LOGGER.info("")
+            i = 1
+            self.full_logger("=" * 8 + " %s " % title + "=" * 8)
+            self.full_logger("")
             target_env = Env.gen_require_env(test_func)
             for tgt_env in self.find_suit_envs(target_env):
                 cases = self.compute_route_permutations(tgt_env)
                 cleanup = self.compute_route_permutations(tgt_env, True)
                 for case in cases:
                     # TODO
-                    LOGGER.info("=" * 8 + " case %d " % i + "=" * 8)
+                    step_index = 1
+                    self.full_logger("=" * 8 + " case %d " % i + "=" * 8)
                     for func in case:
-                        self.run_one_step(func)
-                    self.run_one_step(test_func)
+                        step_index = self.run_one_step(func, step_index=step_index, doc=params.test_case)
+                    step_index = self.run_one_step(test_func, step_index=step_index, doc=params.test_case)
                     i += 1
                     if not cleanup:
                         LOGGER.info("Cannot find clean up way")
                     else:
                         cleanup_case = random.choice(cleanup)
                         for func in cleanup_case:
-                            self.run_one_step(func, False)
+                            step_index = self.run_one_step(func, False, step_index=step_index, doc=params.test_case)
                     LOGGER.info("Current Env: %s", self.env)
                     LOGGER.info("")
                     self.env = Env()
