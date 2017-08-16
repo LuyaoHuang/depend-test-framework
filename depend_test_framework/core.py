@@ -174,8 +174,6 @@ class Container(set):
 
 class Params(dict):
     def __getattr__(self, key):
-        if key not in self.keys():
-            raise Exception("Cannot find %s in params" % key)
         return self.get(key)
 
     def __setattr__(self, key, value):

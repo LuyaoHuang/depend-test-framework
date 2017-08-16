@@ -173,7 +173,7 @@ class Engine(object):
                     continue
                 data = dep_map[env_key]
                 data.setdefault(tmp_e, []).append(func)
-        LOGGER.info(pretty(dep_map))
+        LOGGER.debug(pretty(dep_map))
         self.dep_map = dep_map
 
     def replace_depend_with_param(self, depend):
@@ -213,7 +213,7 @@ class Engine(object):
         if doc_func.__doc__:
             self.params.doc_logger.info("Desciption: %s" % doc_func.__doc__)
         doc_func(self.params, self.env)
-        if not check:
+        if not check or is_CheckPoint(func):
             return step_index
 
         checkpoints = self.find_checkpoints()
@@ -332,7 +332,7 @@ class Demo(Engine):
                 self.full_logger("=" * 8 + " case %d " % i + "=" * 8)
                 for func in case:
                     step_index = self.gen_one_step_doc(func, step_index=step_index)
-                step_index = self.gen_one_step_doc(test_func, step_index=step_index)
+                step_index = self.gen_one_step_doc(test_func, step_index=step_index, check=True)
                 i += 1
                 if need_cleanup:
                     if not cleanup:
@@ -367,34 +367,3 @@ class Demo(Engine):
                 self._gen_test_case_doc(test_func)
             else:
                 self._excute_test(test_func)
-            continue
-
-            if getattr(test_func, 'func_name', None):
-                title = getattr(test_func, 'func_name')
-            else:
-                title = str(test_func)
-
-            i = 1
-            self.full_logger("=" * 8 + " %s " % title + "=" * 8)
-            self.full_logger("")
-            target_env = Env.gen_require_env(test_func)
-            for tgt_env in self.find_suit_envs(target_env):
-                cases = self.compute_route_permutations(tgt_env)
-                cleanup = self.compute_route_permutations(tgt_env, True)
-                for case in cases:
-                    # TODO
-                    step_index = 1
-                    self.full_logger("=" * 8 + " case %d " % i + "=" * 8)
-                    for func in case:
-                        step_index = self.run_one_step(func, step_index=step_index, doc=params.test_case)
-                    step_index = self.run_one_step(test_func, step_index=step_index, doc=params.test_case)
-                    i += 1
-                    if not cleanup:
-                        LOGGER.info("Cannot find clean up way")
-                    else:
-                        cleanup_case = random.choice(cleanup)
-                        for func in cleanup_case:
-                            step_index = self.run_one_step(func, False, step_index=step_index, doc=params.test_case)
-                    LOGGER.info("Current Env: %s", self.env)
-                    LOGGER.info("")
-                    self.env = Env()
