@@ -226,6 +226,8 @@ class Engine(object):
                 self.params.doc_logger.info("Desciption: %s" % mist.__doc__)
             # TODO: here will raise a exception which require the caller handle this
             mist(doc_func, self.params, self.env)
+            # TODO: mist in the mist
+            ret = None
         else:
             if doc_func.__doc__:
                 self.params.doc_logger.info("Desciption: %s" % doc_func.__doc__)

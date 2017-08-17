@@ -8,3 +8,6 @@ guest_xml: 'guest.xml'
 pagesize: '2048'
 test_case: True
 hugetlbfs_mount: '/dev/hugetest'
+memtune:
+    hardlimit: 100
+restart_libvirtd: True

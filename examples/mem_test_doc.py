@@ -150,12 +150,8 @@ def verify_mem_lock(params, env):
     """
     Check mlock function
     """
-    if env.get_data('$guest_name.memtune'):
-        memtune = env.get_data('$guest_name.memtune')
-        if memtune.get('hardlimit'):
-            value = int(memtune.get('hardlimit')) * 1024 * 1024
-        else:
-            value = 'unlimited'
+    if env.get_data('$guest_name.memtune') and params.memtune.hardlimit:
+        value = int(params.memtune.hardlimit) * 1024 * 1024
     else:
         value = 'unlimited'
 
@@ -204,6 +200,19 @@ def virsh_memtune(params, env):
         options += "--swap-hard-limit %d " % params.memtune.swaphardlimit
     params.doc_logger.info(STEPS + "# virsh memtune %s %s --live" % (params.guest_name, options))
     params.doc_logger.info(RESULT + "")
+    if params.restart_libvirtd:
+        start = [Provider('$guest_name.active', Provider.SET),
+                 Provider('$guest_name.memtune', Provider.SET)]
+        end = [Provider('$guest_name.active', Provider.SET),
+                 Provider('$guest_name.memtune', Provider.SET)]
+        def restart_and_memtune(func, params, env):
+            params.doc_logger.info(STEPS + """
+        # service libvirtd restart
+        Stopping libvirtd daemon: [ OK ]
+        Starting libvirtd daemon: [ OK ]
+                """)
+            return func(params, env)
+        return Mist(start, end, restart_and_memtune)
 
 
 def virsh_memtune_conf(params, env):
@@ -238,4 +247,24 @@ def verify_memtune_cgroup(params, env):
     if params.memtune.swaphardlimit:
         params.doc_logger.info("""
     memory.memsw.limit_in_bytes: %d
+            """ % params.memtune.swaphardlimit)
+
+
+def verify_memtune_xml(params, env):
+    """
+    Check the memtune in the guest xml
+    """
+    params.doc_logger.info(STEPS + "# virsh dumpxml %s" % (params.guest_name))
+    params.doc_logger.info(RESULT)
+    if params.memtune.hardlimit:
+        params.doc_logger.info("""
+    <hard_limit unit='KiB'>%d</hard_limit>
+            """ % params.memtune.hardlimit)
+    if params.memtune.softlimit:
+        params.doc_logger.info("""
+    <soft_limit unit='KiB'>%d</soft_limit>
+            """ % params.memtune.softlimit)
+    if params.memtune.swaphardlimit:
+        params.doc_logger.info("""
+    <swap_hard_limit unit='KiB'>%d</swap_hard_limit>
             """ % params.memtune.swaphardlimit)

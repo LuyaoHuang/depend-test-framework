@@ -62,7 +62,10 @@ def load_params(params_str, params_conf=None):
         with open(params_conf) as fp:
             data = yaml.load(fp)
             for key, val in data.items():
-                setattr(params, key, val)
+                if isinstance(val, dict):
+                    setattr(params, key, Params(val))
+                else:
+                    setattr(params, key, val)
     if params_str:
         for param_str in params_str.split(';'):
             key, value = param_str.split('=')

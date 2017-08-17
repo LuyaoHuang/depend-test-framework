@@ -104,3 +104,12 @@ def verify_memtune_cgroup(params, env):
     """
     """
     pass
+
+@CheckPoint.decorator(1)
+@ParamsRequire.decorator(['guest_name', 'memtune'])
+@Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
+@Consumer.decorator('$guest_name.memtune', Consumer.REQUIRE)
+def verify_memtune_xml(params, env):
+    """
+    """
+    pass
