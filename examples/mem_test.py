@@ -11,28 +11,7 @@ def host_hugepage_config(params, env):
     """
     set environment on host
     """
-    return
-    if params.hugetlbfs_mount is not '':
-        params.doc_logger.info("""
-            Then guest memory backing files will be put in %s/libvirt/qemu/.
-            #mount -t hugetlbfs hugetlbfs %s 
-
-            2> reserve memory for huge pages, e.g:
-            #sysctl vm.nr_hugepages=600
-            """ % (params.hugetlbfs_mount, params.hugetlbfs_mount))
-    else:
-        start = [Provider('$guest_name.active', Provider.CLEAR),
-                 Provider('$guest_name.hugepage', Provider.SET)]
-        end = [Provider('$guest_name.active', Provider.SET),
-               Provider('$guest_name.hugepage', Provider.SET)]
-        def mist_host_hugepage(func, params, env):
-            try:
-                func(params, env)
-            except:
-                # TODO: check the failed reason
-                if params.hugetlbfs_mount is '':
-                    return env
-        return Mist(start, end, mist_host_hugepage)
+    pass
 
 
 @Action.decorator(1)
@@ -56,5 +35,72 @@ def guest_hugepage_settings(params, env):
 def check_hugepage_cmdline(params, env):
     """
     Check the qemu command line
+    """
+    pass
+
+
+@Action.decorator(1)
+@ParamsRequire.decorator(['guest_name'])
+@Consumer.decorator('$guest_name.config', Consumer.REQUIRE)
+@Consumer.decorator('$guest_name.active', Consumer.REQUIRE_N)
+@Provider.decorator('$guest_name.mlock', Provider.SET)
+def set_mem_lock_xml(params, env):
+    """
+    """
+    pass
+
+
+@CheckPoint.decorator(1)
+@ParamsRequire.decorator(['guest_name'])
+@Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
+@Consumer.decorator('$guest_name.mlock', Consumer.REQUIRE)
+def verify_mem_lock(params, env):
+    pass
+
+
+@Action.decorator(1)
+@ParamsRequire.decorator(['guest_name'])
+@Consumer.decorator('$guest_name.config', Consumer.REQUIRE)
+@Consumer.decorator('$guest_name.active', Consumer.REQUIRE_N)
+@Provider.decorator('$guest_name.nosharepage', Provider.SET)
+def set_nosharepage_xml(params, env):
+    """
+    """
+    pass
+
+
+@CheckPoint.decorator(1)
+@ParamsRequire.decorator(['guest_name'])
+@Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
+@Consumer.decorator('$guest_name.nosharepage', Consumer.REQUIRE)
+def verify_nosharepage(params, env):
+    pass
+
+
+@Action.decorator(1)
+@ParamsRequire.decorator(['guest_name', 'memtune'])
+@Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
+@Provider.decorator('$guest_name.memtune', Provider.SET)
+def virsh_memtune(params, env):
+    """
+    """
+    pass
+
+
+@Action.decorator(1)
+@ParamsRequire.decorator(['guest_name', 'memtune'])
+@Consumer.decorator('$guest_name.config', Consumer.REQUIRE)
+@Provider.decorator('$guest_name.memtune_conf', Provider.SET)
+def virsh_memtune_conf(params, env):
+    """
+    """
+    pass
+
+@CheckPoint.decorator(1)
+@ParamsRequire.decorator(['guest_name', 'memtune'])
+@Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
+@Consumer.decorator('$guest_name.memtune', Consumer.REQUIRE)
+def verify_memtune_cgroup(params, env):
+    """
     """
     pass

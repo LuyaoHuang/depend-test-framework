@@ -306,25 +306,6 @@ class Env(object):
                 return
         return tmp_env
 
-    def _set_data_from_path2(self, path, value):
-        # TODO: refactor this class, this looks ugly
-        split_path = path.split('.')
-        if value is False:
-            # TODO
-            env = self._get_data_from_path('.'.join(split_path[:-1]))
-            if not env or split_path[-1] not in env.keys():
-                return
-            env.pop(split_path[-1])
-            if not env:
-                self._set_data_from_path('.'.join(split_path[:-1]), False)
-        else:
-            env = self._get_data_from_path('.'.join(split_path[:-1]), True)
-            if env is True and value is not True:
-                env = self._get_data_from_path('.'.join(split_path[:-2]), True)
-                env[split_path[-2]] = self.__class__()
-                env = env[split_path[-2]]
-            env[split_path[-1]] = value
-
     def _set_data_from_path(self, path, value):
         env = self._get_data_from_path(path, True)
         if not env:
