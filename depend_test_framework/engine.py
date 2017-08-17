@@ -5,7 +5,7 @@ import inspect
 import itertools
 import random
 from collections import OrderedDict
-from core import is_Action, is_CheckPoint, Container, is_Hybrid, Env, get_all_depend, Params, get_func_params_require, Provider, Consumer, TestObject, is_TestObject
+from core import is_Action, is_CheckPoint, Container, is_Hybrid, Env, get_all_depend, Params, get_func_params_require, Provider, Consumer, TestObject, is_TestObject, MistDeadEndException
 from utils import pretty
 from log import get_logger, prefix_logger, get_file_logger
 from algorithms import route_permutations
@@ -198,21 +198,45 @@ class Engine(object):
         LOGGER.info(msg)
         self.params.doc_logger.info(msg)
 
-    def gen_one_step_doc(self, func, step_index=None, check=False):
+    def _check_mists(self, mists, env, func):
+        if not mists:
+            return
+        for mist in mists:
+            if mist.reach(env, func):
+                return mist
+
+    def gen_one_step_doc(self, func, step_index=None, check=False, mists=None):
         if getattr(func, '__name__', None):
             doc_func_name = func.__name__
         else:
             doc_func_name = func.__class__.__name__
+
         if step_index is not None:
             #TODO: move doc_logger definition in basic engine
             self.params.doc_logger.info('%d.\n' % step_index)
             step_index += 1
+
         if doc_func_name not in self.doc_funcs.keys():
             self.params.doc_logger.info("Not define %s name in doc modules" % doc_func_name)
         doc_func = self.doc_funcs[doc_func_name]
-        if doc_func.__doc__:
-            self.params.doc_logger.info("Desciption: %s" % doc_func.__doc__)
-        doc_func(self.params, self.env)
+
+        mist = self._check_mists(mists, self.env, func)
+        if mist:
+            if mist.__doc__:
+                self.params.doc_logger.info("Desciption: %s" % mist.__doc__)
+            # TODO: here will raise a exception which require the caller handle this
+            mist(doc_func, self.params, self.env)
+        else:
+            if doc_func.__doc__:
+                self.params.doc_logger.info("Desciption: %s" % doc_func.__doc__)
+
+            ret = doc_func(self.params, self.env)
+        self.env = self.env.gen_transfer_env(func)
+        LOGGER.debug("Env: %s, func: %s", self.env, func)
+
+        if ret and mists is not None:
+            LOGGER.info('Add a new mist')
+            mists.append(ret)
         if not check or is_CheckPoint(func):
             return step_index
 
@@ -221,7 +245,6 @@ class Engine(object):
             step_index = self.gen_one_step_doc(checkpoint, step_index=step_index)
 
         return step_index
-
 
     def run_one_step(self, func, check=True, doc=False):
         with prefix_logger(LOGGER, "\033[94mAction:\033[0m", new_name=func.__module__):
@@ -329,19 +352,25 @@ class Demo(Engine):
             for case in cases:
                 # TODO
                 step_index = 1
+                mists = []
                 self.full_logger("=" * 8 + " case %d " % i + "=" * 8)
-                for func in case:
-                    step_index = self.gen_one_step_doc(func, step_index=step_index)
-                step_index = self.gen_one_step_doc(test_func, step_index=step_index, check=True)
+                try:
+                    for func in case:
+                        step_index = self.gen_one_step_doc(func, step_index=step_index, mists=mists)
+                    step_index = self.gen_one_step_doc(test_func, step_index=step_index, check=True, mists=mists)
+                except MistDeadEndException:
+                    # TODO: maybe need clean up
+                    pass
+                else:
+                    if need_cleanup:
+                        if not cleanup:
+                            LOGGER.info("Cannot find clean up way")
+                            LOGGER.info("Current Env: %s", self.env)
+                        else:
+                            cleanup_case = random.choice(cleanup)
+                            for func in cleanup_case:
+                                step_index = self.run_one_step(func,  step_index=step_index)
                 i += 1
-                if need_cleanup:
-                    if not cleanup:
-                        LOGGER.info("Cannot find clean up way")
-                        LOGGER.info("Current Env: %s", self.env)
-                    else:
-                        cleanup_case = random.choice(cleanup)
-                        for func in cleanup_case:
-                            step_index = self.run_one_step(func,  step_index=step_index)
                 self.env = Env()
 
     def run(self, params):
@@ -359,7 +388,7 @@ class Demo(Engine):
             # TODO
             self.env = Env()
 
-            test_case = OrderedDict()
+            test_case = []
             order = []
             test_func = random.choice(test_funcs)
             test_funcs.remove(test_func)

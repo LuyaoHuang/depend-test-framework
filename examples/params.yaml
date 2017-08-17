@@ -7,3 +7,4 @@ cpu_plug: 'up'
 guest_xml: 'guest.xml'
 pagesize: '2048'
 test_case: True
+hugetlbfs_mount: ''

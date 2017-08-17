@@ -1,4 +1,4 @@
-from utils import enter_depend_test, STEPS, RESULT, SETUP
+from utils import enter_depend_test
 enter_depend_test()
 
 from depend_test_framework.core import Action, ParamsRequire, Provider, Consumer, CheckPoint, TestObject
@@ -11,7 +11,28 @@ def host_hugepage_config(params, env):
     """
     set environment on host
     """
-    pass
+    return
+    if params.hugetlbfs_mount is not '':
+        params.doc_logger.info("""
+            Then guest memory backing files will be put in %s/libvirt/qemu/.
+            #mount -t hugetlbfs hugetlbfs %s 
+
+            2> reserve memory for huge pages, e.g:
+            #sysctl vm.nr_hugepages=600
+            """ % (params.hugetlbfs_mount, params.hugetlbfs_mount))
+    else:
+        start = [Provider('$guest_name.active', Provider.CLEAR),
+                 Provider('$guest_name.hugepage', Provider.SET)]
+        end = [Provider('$guest_name.active', Provider.SET),
+               Provider('$guest_name.hugepage', Provider.SET)]
+        def mist_host_hugepage(func, params, env):
+            try:
+                func(params, env)
+            except:
+                # TODO: check the failed reason
+                if params.hugetlbfs_mount is '':
+                    return env
+        return Mist(start, end, mist_host_hugepage)
 
 
 @Action.decorator(1)

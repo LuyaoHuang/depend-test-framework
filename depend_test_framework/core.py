@@ -169,6 +169,39 @@ class ParamsRequire(Entrypoint):
         for key in param_depend:
             self.param_depend[key] = True
 
+
+class MistDeadEndException(Exception):
+    """
+    This means the mist is end of the road
+    """
+
+
+class Mist(object):
+    """
+    TODO Need explain what's this
+    """
+    def __init__(self, start, end, func):
+        self.start = start
+        self.end = end
+        self.func = func
+        env = Env()
+        env.set_from_depends(start)
+        self._start_env = env
+        env = Env()
+        env.set_from_depends(end)
+        self._end_env = env
+
+    def reach(self, env, func):
+        new_env = env.gen_transfer_env(func)
+        if self._start_env <= env and self._end_env <= new_env:
+            return True
+        else:
+            return False
+
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
+
+
 class Container(set):
     pass
 
@@ -416,7 +449,7 @@ class Env(object):
 
     def _check_include(self, target):
         for key, value in self.items():
-            if key not in target.keys():
+            if value.data and key not in target.keys():
                 return False
             if not value._check_include(target[key]):
                 return False
