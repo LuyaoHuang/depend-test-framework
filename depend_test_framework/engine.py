@@ -9,6 +9,7 @@ from core import is_Action, is_CheckPoint, Container, is_Hybrid, Env, get_all_de
 from utils import pretty
 from log import get_logger, prefix_logger, get_file_logger
 from algorithms import route_permutations
+from case import Case
 
 LOGGER = get_logger(__name__)
 
@@ -338,7 +339,7 @@ class Demo(Engine):
                 LOGGER.info("")
                 self.env = Env()
 
-    def _gen_test_case_doc(self, test_func, need_cleanup=False):
+    def _gen_test_case_doc(self, test_func, need_cleanup=False, full_matrix=False):
         if getattr(test_func, 'func_name', None):
             title = getattr(test_func, 'func_name')
         else:
@@ -348,32 +349,47 @@ class Demo(Engine):
         self.full_logger("")
         target_env = Env.gen_require_env(test_func)
         i = 1
+        case_matrix = []
         for tgt_env in self.find_suit_envs(target_env):
             cases = self.compute_route_permutations(tgt_env)
-            cleanup = self.compute_route_permutations(tgt_env, True)
+            cleanups = self.compute_route_permutations(tgt_env, True)
+            if cleanups:
+                cleanup_steps = random.choice(cleanups)
+            else:
+                cleanup_steps = None
+
             for case in cases:
+                case_obj = Case(case, tgt_env=tgt_env,
+                                cleanups=cleanup_steps)
+                case_matrix.append(case_obj)
                 # TODO
-                step_index = 1
-                mists = []
-                self.full_logger("=" * 8 + " case %d " % i + "=" * 8)
-                try:
-                    for func in case:
-                        step_index = self.gen_one_step_doc(func, step_index=step_index, mists=mists)
-                    step_index = self.gen_one_step_doc(test_func, step_index=step_index, check=True, mists=mists)
-                except MistDeadEndException:
-                    # TODO: maybe need clean up
-                    pass
-                else:
-                    if need_cleanup:
-                        if not cleanup:
-                            LOGGER.info("Cannot find clean up way")
-                            LOGGER.info("Current Env: %s", self.env)
-                        else:
-                            cleanup_case = random.choice(cleanup)
-                            for func in cleanup_case:
-                                step_index = self.run_one_step(func,  step_index=step_index)
-                i += 1
-                self.env = Env()
+
+        if not full_matrix:
+            case = min(case_matrix)
+            case_matrix = [case]
+
+        while case_matrix:
+            case = case_matrix.pop()
+            step_index = 1
+            mists = []
+            self.full_logger("=" * 8 + " case %d " % i + "=" * 8)
+            try:
+                for func in case.steps:
+                    step_index = self.gen_one_step_doc(func, step_index=step_index, mists=mists)
+                step_index = self.gen_one_step_doc(test_func, step_index=step_index, check=True, mists=mists)
+            except MistDeadEndException:
+                # TODO: maybe need clean up
+                pass
+            else:
+                if need_cleanup:
+                    if not case.cleanups:
+                        LOGGER.info("Cannot find clean up way")
+                        LOGGER.info("Current Env: %s", self.env)
+                    else:
+                        for func in case.clean_ups:
+                            step_index = self.run_one_step(func, step_index=step_index)
+            i += 1
+            self.env = Env()
 
     def run(self, params):
         self.params = params

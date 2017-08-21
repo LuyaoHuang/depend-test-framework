@@ -9,6 +9,7 @@ if os.path.isdir(os.path.join(BASEDIR, 'depend_test_framework')):
 
 from depend_test_framework.core import Env
 
+
 def test_env():
     e = Env()
     e.set_data('a.c', 1)
@@ -17,3 +18,15 @@ def test_env():
     assert e.struct_table() == '{ a: { c: {},},}'
     e.set_data('a.c', False)
     assert e.struct_table() == '{}'
+
+    e2 = Env()
+    e2.set_data('a.b', 1)
+    e.set_data('a.c', 1)
+    assert not e2 <= e
+    assert not e2 >= e
+    assert e2 is not e
+    e2.set_data('a.c', 1)
+    assert not e2 <= e
+    assert e2 >= e
+    assert e2.__repr__() == "<Env path='' data='None'>"
+    assert e2['a']['c'].__repr__() == "<Env path='a.c' data='1'>"

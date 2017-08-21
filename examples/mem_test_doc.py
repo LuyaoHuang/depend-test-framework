@@ -35,7 +35,8 @@ def host_hugepage_config(params, env):
                Provider('$guest_name.hugepage', Provider.SET)]
         def mist_host_hugepage(func, params, env):
             params.doc_logger.info(STEPS + "# virsh start %s" % params.guest_name)
-            params.doc_logger.info(RESULT + "error: Failed to start domain %s\nerror: internal error hugepages are disabled by administrator config" % params.guest_name)
+            params.doc_logger.info(RESULT + "error: Failed to start domain %s" % params.guest_name)
+            params.doc_logger.info("error: internal error hugepages are disabled by administrator config")
             raise MistDeadEndException()
         return Mist(start, end, mist_host_hugepage)
 
@@ -239,15 +240,15 @@ def verify_memtune_cgroup(params, env):
     if params.memtune.hardlimit:
         params.doc_logger.info("""
     memory.limit_in_bytes: %d
-            """ % params.memtune.hardlimit)
+            """ % (params.memtune.hardlimit * 1024))
     if params.memtune.softlimit:
         params.doc_logger.info("""
     memory.soft_limit_in_bytes: %d
-            """ % params.memtune.softlimit)
+            """ % (params.memtune.softlimit * 1024))
     if params.memtune.swaphardlimit:
         params.doc_logger.info("""
     memory.memsw.limit_in_bytes: %d
-            """ % params.memtune.swaphardlimit)
+            """ % (params.memtune.swaphardlimit * 1024))
 
 
 def verify_memtune_xml(params, env):
