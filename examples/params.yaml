@@ -11,3 +11,6 @@ hugetlbfs_mount: '/dev/hugetest'
 memtune:
     hardlimit: 100
 restart_libvirtd: True
+curmem: 1048576
+memballoon:
+    model: 'none'

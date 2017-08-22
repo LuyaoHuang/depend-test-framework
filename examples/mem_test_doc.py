@@ -1,7 +1,7 @@
 from utils import enter_depend_test, STEPS, RESULT, SETUP
 enter_depend_test()
 
-from depend_test_framework.core import Action, ParamsRequire, Provider, Consumer, CheckPoint, TestObject, Mist, MistDeadEndException
+from depend_test_framework.core import Action, ParamsRequire, Provider, Consumer, CheckPoint, TestObject, Mist, MistDeadEndException, MistClearException
 
 
 def host_hugepage_config(params, env):
@@ -206,13 +206,16 @@ def virsh_memtune(params, env):
                  Provider('$guest_name.memtune', Provider.SET)]
         end = [Provider('$guest_name.active', Provider.SET),
                  Provider('$guest_name.memtune', Provider.SET)]
+
         def restart_and_memtune(func, params, env):
             params.doc_logger.info(STEPS + """
         # service libvirtd restart
         Stopping libvirtd daemon: [ OK ]
         Starting libvirtd daemon: [ OK ]
                 """)
-            return func(params, env)
+            func(params, env)
+            raise MistClearException
+
         return Mist(start, end, restart_and_memtune)
 
 
@@ -269,3 +272,46 @@ def verify_memtune_xml(params, env):
         params.doc_logger.info("""
     <swap_hard_limit unit='KiB'>%d</swap_hard_limit>
             """ % params.memtune.swaphardlimit)
+
+def set_memballoon_xml(params, env):
+    """
+    Set the memballon device in guest xml
+    """
+    params.doc_logger.info(STEPS + """
+    <memballoon model='%s'>
+    </memballoon>
+        """ % params.memballoon.model)
+
+    if params.memballoon.model == 'none':
+        start = [Provider('$guest_name.active', Provider.SET)]
+        end = [Provider('$guest_name.active', Provider.SET),
+                 Provider('$guest_name.curmem', Provider.SET)]
+
+        def restart_and_memtune(func, params, env):
+            params.doc_logger.info(STEPS + "# virsh setmem %s %d" % (params.guest_name, params.curmem))
+            params.doc_logger.info(RESULT + "error: Requested operation is not valid: Unable to change memory of active domain without the balloon device and guest OS balloon driver")
+            raise MistDeadEndException
+
+        return Mist(start, end, restart_and_memtune)
+
+# TODO maybe we can merge this two to one func ?
+def hot_set_guest_mem(params, env):
+    """
+    Use virsh setmem to change the running guest memory size
+    """
+    params.doc_logger.info(STEPS + "# virsh setmem %s %d --live" % (params.guest_name, params.curmem))
+    params.doc_logger.info(RESULT)
+
+def cold_set_guest_mem(params, env):
+    """
+    Use virsh setmem to change the guest memory size in xml
+    """
+    params.doc_logger.info(STEPS + "# virsh setmem %s %d --config" % (params.guest_name, params.curmem))
+    params.doc_logger.info(RESULT)
+
+def verify_setmem_in_guest(params, env):
+    """
+    Check the current memory size in the guest
+    """
+    params.doc_logger.info(STEPS + "# cat /proc/meminfo | grep MemTotal")
+    params.doc_logger.info(RESULT + "MemTotal:        %d kB" % params.curmem)

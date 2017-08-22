@@ -176,6 +176,12 @@ class MistDeadEndException(Exception):
     """
 
 
+class MistClearException(Exception):
+    """
+    This means the mist have been clear
+    """
+
+
 class Mist(object):
     """
     TODO Need explain what's this
@@ -241,10 +247,11 @@ class Env(object):
     """
     TODO
     """
-    def __init__(self, data=None, parent=None, childs=None):
+    def __init__(self, data=None, parent=None, childs=None, path=''):
         self.data = data
         self.parent = parent
         self.childs = childs if childs else {} 
+        self._path = path
 #    def __getattr__(self, key):
 #        value = self.get(key)
 #        if not value and not key.startswith("_"):
@@ -261,7 +268,11 @@ class Env(object):
     def __getitem__(self, key):
         value = self.childs.get(key)
         if not value and not key.startswith("_"):
-            value = child_env = self.__class__(parent=self)
+            if self._path:
+                child_path = '%s.%s' % (self._path, key)
+            else:
+                child_path = '%s' % key
+            value = child_env = self.__class__(parent=self, path=child_path)
             self.childs[key] = child_env
         return value
 
@@ -308,7 +319,7 @@ class Env(object):
 
     def _set_data_from_path(self, path, value):
         env = self._get_data_from_path(path, True)
-        if not env:
+        if env is None:
             raise Exception
         env.data = value
 
@@ -383,17 +394,6 @@ class Env(object):
         """
         return hash(self.struct_table())
 
-    def _full_path(self):
-        path = ''
-        if self.parent:
-            for key, value in self.parent.items():
-                if value == self:
-                    path += '%s' % key
-                    break
-            if self.parent._full_path():
-                path = self.parent._full_path() + '.' +  path
-        return path
-
     def struct_table(self):
         if not self.keys():
             #TODO
@@ -411,6 +411,15 @@ class Env(object):
     def __eq__(self, target):
         return self.__cmp__(target)
 
+    def __len__(self):
+        num = 0
+        if self.values():
+            for child in self.values():
+                num += len(child)
+        elif self.data:
+            return 1
+        return num
+
     def need_fmt(self):
         for child in self.values():
             if child.need_fmt():
@@ -420,7 +429,7 @@ class Env(object):
         return False
 
     def __repr__(self):
-        return "<%s path='%s' data='%s'>" % (self.__class__.__name__, self._full_path(), self.data)
+        return "<%s path='%s' data='%s'>" % (self.__class__.__name__, self._path, self.data)
 
     def __le__(self, target):
         return self._check_include(target)

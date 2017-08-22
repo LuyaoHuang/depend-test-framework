@@ -6,7 +6,7 @@ FMT = '%(asctime)s | %(name)-30s | %(levelname)-3s | {0} %(message)s'
 FILE_FMT = '%(message)s'
 
 
-def make_timing_logger(logger, precision=3, level=logging.DEBUG):
+def make_timing_logger(logger, precision=3, level=logging.INFO):
     @contextmanager
     def log_time(msg, *args):
         start_time = time.time()

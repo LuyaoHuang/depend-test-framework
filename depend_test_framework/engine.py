@@ -5,13 +5,14 @@ import inspect
 import itertools
 import random
 from collections import OrderedDict
-from core import is_Action, is_CheckPoint, Container, is_Hybrid, Env, get_all_depend, Params, get_func_params_require, Provider, Consumer, TestObject, is_TestObject, MistDeadEndException
+from core import is_Action, is_CheckPoint, Container, is_Hybrid, Env, get_all_depend, Params, get_func_params_require, Provider, Consumer, TestObject, is_TestObject, MistDeadEndException, MistClearException
 from utils import pretty
-from log import get_logger, prefix_logger, get_file_logger
+from log import get_logger, prefix_logger, get_file_logger, make_timing_logger
 from algorithms import route_permutations
 from case import Case
 
 LOGGER = get_logger(__name__)
+time_log = make_timing_logger(LOGGER)
 
 
 class Engine(object):
@@ -83,11 +84,13 @@ class Engine(object):
     def compute_full_steps(self, steps):
         pass
 
-    def find_suit_envs(self, env):
+    def find_suit_envs(self, env, dep=None):
         if not self.dep_map:
             raise Exception('Need gen depend map first')
         for key_env in self.dep_map.keys():
             if env <= key_env:
+                if dep and (len(key_env) - len(env)) > dep:
+                    continue
                 yield key_env
 
     def compute_route_permutations(self, target_env, cleanup=False, src_env=None):
@@ -175,6 +178,8 @@ class Engine(object):
                 data = dep_map[env_key]
                 data.setdefault(tmp_e, []).append(func)
         LOGGER.debug(pretty(dep_map))
+        LOGGER.info('Depend map is %d x %d size',
+                    len(dep_map), len(dep_map))
         self.dep_map = dep_map
 
     def replace_depend_with_param(self, depend):
@@ -226,7 +231,10 @@ class Engine(object):
             if mist.__doc__:
                 self.params.doc_logger.info("Desciption: %s" % mist.__doc__)
             # TODO: here will raise a exception which require the caller handle this
-            mist(doc_func, self.params, self.env)
+            try:
+                mist(doc_func, self.params, self.env)
+            except MistClearException:
+                mists.remove(mist)
             # TODO: mist in the mist
             ret = None
         else:
@@ -240,16 +248,19 @@ class Engine(object):
         if ret and mists is not None:
             LOGGER.info('Add a new mist')
             mists.append(ret)
+
         if not check or is_CheckPoint(func):
             return step_index
 
         checkpoints = self.find_checkpoints()
         for i, checkpoint in enumerate(checkpoints):
-            step_index = self.gen_one_step_doc(checkpoint, step_index=step_index)
+            step_index = self.gen_one_step_doc(checkpoint,
+                step_index=step_index, mists=mists)
 
         return step_index
 
     def run_one_step(self, func, check=True, doc=False):
+        # TODO: merge this method and find_all_way_to_target to one method
         with prefix_logger(LOGGER, "\033[94mAction:\033[0m", new_name=func.__module__):
             # TODO
             if is_TestObject(func):
@@ -264,10 +275,30 @@ class Engine(object):
             return
         checkpoints = self.find_checkpoints()
         for i, checkpoint in enumerate(checkpoints):
-            with prefix_logger(LOGGER, "\033[92mCheckpoint%s:\033[0m" % str(i+1), new_name=checkpoint.__module__):
+            with prefix_logger(LOGGER, "\033[92mCheckpoint%s:\033[0m" % str(i+1),
+                               new_name=checkpoint.__module__):
                 if checkpoint.__doc__:
                     self.full_logger("Desciption: %s" % checkpoint.__doc__)
                 checkpoint(self.params, self.env)
+
+    def find_all_way_to_target(self, target_env, random_cleanup=True):
+        for tgt_env in self.find_suit_envs(target_env, 2):
+            cases = self.compute_route_permutations(tgt_env)
+            cleanups = self.compute_route_permutations(tgt_env, True)
+            if cleanups:
+                if random_cleanup:
+                    cleanup_steps = random.choice(cleanups)
+                else:
+                    # TODO use the shortest way
+                    raise NotImplementedError
+            else:
+                cleanup_steps = None
+
+            LOGGER.debug("env: %s case num: %d" % (tgt_env, len(cases)))
+            for case in cases:
+                case_obj = Case(case, tgt_env=tgt_env,
+                                cleanups=cleanup_steps)
+                yield case_obj
 
 
 class Template(Engine):
@@ -319,7 +350,7 @@ class Demo(Engine):
         self.full_logger("")
         target_env = Env.gen_require_env(test_func)
         i = 1
-        for tgt_env in self.find_suit_envs(target_env):
+        for tgt_env in self.find_suit_envs(target_env, 2):
             cases = self.compute_route_permutations(tgt_env)
             cleanup = self.compute_route_permutations(tgt_env, True)
             for case in cases:
@@ -339,7 +370,7 @@ class Demo(Engine):
                 LOGGER.info("")
                 self.env = Env()
 
-    def _gen_test_case_doc(self, test_func, need_cleanup=False, full_matrix=False):
+    def _gen_test_case_doc(self, test_func, need_cleanup=False, full_matrix=True):
         if getattr(test_func, 'func_name', None):
             title = getattr(test_func, 'func_name')
         else:
@@ -349,22 +380,11 @@ class Demo(Engine):
         self.full_logger("")
         target_env = Env.gen_require_env(test_func)
         i = 1
-        case_matrix = []
-        for tgt_env in self.find_suit_envs(target_env):
-            cases = self.compute_route_permutations(tgt_env)
-            cleanups = self.compute_route_permutations(tgt_env, True)
-            if cleanups:
-                cleanup_steps = random.choice(cleanups)
-            else:
-                cleanup_steps = None
-
-            for case in cases:
-                case_obj = Case(case, tgt_env=tgt_env,
-                                cleanups=cleanup_steps)
-                case_matrix.append(case_obj)
-                # TODO
+        with time_log('Compute case permutations'):
+            case_matrix = list(self.find_all_way_to_target(target_env))
 
         if not full_matrix:
+            LOGGER.info('Find %d route, and use the shortest one', len(case_matrix))
             case = min(case_matrix)
             case_matrix = [case]
 
@@ -375,8 +395,10 @@ class Demo(Engine):
             self.full_logger("=" * 8 + " case %d " % i + "=" * 8)
             try:
                 for func in case.steps:
-                    step_index = self.gen_one_step_doc(func, step_index=step_index, mists=mists)
-                step_index = self.gen_one_step_doc(test_func, step_index=step_index, check=True, mists=mists)
+                    step_index = self.gen_one_step_doc(func,
+                        step_index=step_index, mists=mists)
+                step_index = self.gen_one_step_doc(test_func,
+                    step_index=step_index, check=True, mists=mists)
             except MistDeadEndException:
                 # TODO: maybe need clean up
                 pass
@@ -397,7 +419,8 @@ class Demo(Engine):
         self.params.logger = LOGGER
         self.params.doc_logger = get_file_logger('test_doc', 'doc.file')
         self.filter_all_func_custom(self._cb_filter_with_param)
-        self.gen_depend_map()
+        with time_log('Gen the depend map'):
+            self.gen_depend_map()
 
         tests = []
         test_funcs = self._prepare_test_funcs()

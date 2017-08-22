@@ -113,3 +113,35 @@ def verify_memtune_xml(params, env):
     """
     """
     pass
+
+@Action.decorator(1)
+@ParamsRequire.decorator(['guest_name', 'memballoon'])
+@Consumer.decorator('$guest_name.config', Consumer.REQUIRE)
+@Provider.decorator('$guest_name.memballoon', Provider.SET)
+def set_memballoon_xml(params, env):
+    """
+    """
+    pass
+
+@Action.decorator(1)
+@ParamsRequire.decorator(['guest_name', 'curmem'])
+@Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
+@Provider.decorator('$guest_name.curmem', Provider.SET)
+def hot_set_guest_mem(params, env):
+    pass
+
+@Action.decorator(1)
+@ParamsRequire.decorator(['guest_name', 'curmem'])
+@Consumer.decorator('$guest_name.config', Consumer.REQUIRE)
+@Provider.decorator('$guest_name.curmem_conf', Provider.SET)
+def cold_set_guest_mem(params, env):
+    pass
+
+@CheckPoint.decorator(2)
+@ParamsRequire.decorator(['guest_name', 'curmem'])
+@Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
+@Consumer.decorator('$guest_name.curmem', Consumer.REQUIRE)
+def verify_setmem_in_guest(params, env):
+    """
+    """
+    pass
