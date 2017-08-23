@@ -7,14 +7,8 @@ case:
     - name: test case 1
       params:
         guest_xml: 'guest.xml'
-#        pagesize: '2048'
-#        hugetlbfs_mount: '/dev/hugetest'
-#        memtune:
-#          hardlimit: 100
         restart_libvirtd: True
         curmem: 1048576
-#        memballoon:
-#          model: 'none'
         mem_period: 2
       params_matrix:
         memballoon:

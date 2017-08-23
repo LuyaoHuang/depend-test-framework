@@ -34,17 +34,17 @@ def get_logger(name, level=logging.INFO, prefix=""):
     """
     logger = logging.getLogger(name)
     logger.propagate = False
-    logger.setLevel(level)
+    # logger.setLevel(level)
     formatter = logging.Formatter(FMT.format(prefix))
 
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(level)
+    # console_handler.setLevel(level)
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 
     # TODO: file put in config
     file_handler = logging.FileHandler('log.debug')
-    file_handler.setLevel(logging.INFO)
+    # file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
@@ -54,12 +54,12 @@ def get_logger(name, level=logging.INFO, prefix=""):
 def get_file_logger(name, file_name, level=logging.INFO):
     logger = logging.getLogger(name)
     logger.propagate = False
-    logger.setLevel(level)
+    #logger.setLevel(level)
     formatter = logging.Formatter(FILE_FMT)
 
     # TODO: file put in config
     file_handler = logging.FileHandler(file_name)
-    file_handler.setLevel(logging.INFO)
+    #file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 

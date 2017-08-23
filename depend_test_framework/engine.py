@@ -128,7 +128,7 @@ class Engine(object):
         need_remove = Container()
         for func in container:
             if cb(func):
-                LOGGER.info('Remove func ' + str(func))
+                LOGGER.debug('Remove func ' + str(func))
                 need_remove.add(func)
         container -= need_remove
 
@@ -415,6 +415,7 @@ class Demo(Engine):
 
     def run(self, params, doc_file=None):
         self.params = params
+        LOGGER.debug("params: %s", params)
         # TODO
         self.params.logger = LOGGER
         doc_path = 'doc.file' if not doc_file else doc_file
@@ -426,7 +427,6 @@ class Demo(Engine):
         tests = []
         test_funcs = self._prepare_test_funcs()
 
-        LOGGER.info("params: %s", params)
         while test_funcs:
             # TODO
             self.env = Env()
@@ -441,3 +441,4 @@ class Demo(Engine):
                 self._excute_test(test_func)
 
         LOGGER.info('Write all case to %s', doc_path)
+        LOGGER.info('')
