@@ -413,11 +413,12 @@ class Demo(Engine):
             i += 1
             self.env = Env()
 
-    def run(self, params):
+    def run(self, params, doc_file=None):
         self.params = params
         # TODO
         self.params.logger = LOGGER
-        self.params.doc_logger = get_file_logger('test_doc', 'doc.file')
+        doc_path = 'doc.file' if not doc_file else doc_file
+        self.params.doc_logger = get_file_logger(doc_path, doc_path)
         self.filter_all_func_custom(self._cb_filter_with_param)
         with time_log('Gen the depend map'):
             self.gen_depend_map()
@@ -425,6 +426,7 @@ class Demo(Engine):
         tests = []
         test_funcs = self._prepare_test_funcs()
 
+        LOGGER.info("params: %s", params)
         while test_funcs:
             # TODO
             self.env = Env()
@@ -434,6 +436,8 @@ class Demo(Engine):
             test_func = random.choice(test_funcs)
             test_funcs.remove(test_func)
             if self.params.test_case:
-                self._gen_test_case_doc(test_func)
+                self._gen_test_case_doc(test_func, full_matrix=self.params.full_matrix)
             else:
                 self._excute_test(test_func)
+
+        LOGGER.info('Write all case to %s', doc_path)

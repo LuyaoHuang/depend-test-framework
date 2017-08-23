@@ -76,63 +76,6 @@ def check_hugepage_cmdline(params, env):
         params.doc_logger.info(RESULT + "There is no ...-mem-path %s/libvirt/qemu..." % params.hugetlbfs_mount)
 
 
-def set_mem_backend_xml(params, env):
-    """
-    """
-    DATA = """
-prepare a guest have xml with different element which will effect by memory backing:
-
-...
-    <numa>
-      <cell id='0' cpus='0-2' memory='524288' unit='KiB' memAccess='shared'/>
-      <cell id='1' cpus='3-5' memory='524288' unit='KiB'/>
-    </numa>
-...
-    <memory model='dimm' access='private'>
-      <target>
-        <size unit='KiB'>524287</size>
-        <node>0</node>
-      </target>
-      <address type='dimm' slot='0'/>
-    </memory>
-    <memory model='dimm'>
-      <target>
-        <size unit='KiB'>524287</size>
-        <node>0</node>
-      </target>
-      <address type='dimm' slot='1'/>
-    </memory>
-    <memory model='nvdimm' access='shared'>
-      <source>
-        <path>/tmp/nvdimm</path>
-      </source>
-      <target>
-        <size unit='KiB'>524288</size>
-        <node>1</node>
-        <label>
-          <size unit='KiB'>128</size>
-        </label>
-      </target>
-      <address type='dimm' slot='2'/>
-    </memory>
-    <memory model='nvdimm'>
-      <source>
-        <path>/tmp/nvdimm</path>
-      </source>
-      <target>
-        <size unit='KiB'>524288</size>
-        <node>1</node>
-        <label>
-          <size unit='KiB'>128</size>
-        </label>
-      </target>
-      <address type='dimm' slot='3'/>
-    </memory>
-...
-
-    """
-
-
 def set_mem_lock_xml(params, env):
     """
     Add the mlock in the xml
@@ -273,6 +216,7 @@ def verify_memtune_xml(params, env):
     <swap_hard_limit unit='KiB'>%d</swap_hard_limit>
             """ % params.memtune.swaphardlimit)
 
+
 def set_memballoon_xml(params, env):
     """
     Set the memballon device in guest xml
@@ -289,10 +233,13 @@ def set_memballoon_xml(params, env):
 
         def restart_and_memtune(func, params, env):
             params.doc_logger.info(STEPS + "# virsh setmem %s %d" % (params.guest_name, params.curmem))
-            params.doc_logger.info(RESULT + "error: Requested operation is not valid: Unable to change memory of active domain without the balloon device and guest OS balloon driver")
+            params.doc_logger.info(RESULT + "error: Requested operation is not valid: " +
+                "Unable to change memory of active domain " +
+                "without the balloon device and guest OS balloon driver")
             raise MistDeadEndException
 
         return Mist(start, end, restart_and_memtune)
+
 
 # TODO maybe we can merge this two to one func ?
 def hot_set_guest_mem(params, env):
@@ -302,6 +249,7 @@ def hot_set_guest_mem(params, env):
     params.doc_logger.info(STEPS + "# virsh setmem %s %d --live" % (params.guest_name, params.curmem))
     params.doc_logger.info(RESULT)
 
+
 def cold_set_guest_mem(params, env):
     """
     Use virsh setmem to change the guest memory size in xml
@@ -309,9 +257,61 @@ def cold_set_guest_mem(params, env):
     params.doc_logger.info(STEPS + "# virsh setmem %s %d --config" % (params.guest_name, params.curmem))
     params.doc_logger.info(RESULT)
 
+
 def verify_setmem_in_guest(params, env):
     """
     Check the current memory size in the guest
     """
     params.doc_logger.info(STEPS + "# cat /proc/meminfo | grep MemTotal")
     params.doc_logger.info(RESULT + "MemTotal:        %d kB" % params.curmem)
+
+
+def virsh_set_period_conf(params, env):
+    """
+    Set guest memballon meminfo collection period in the config
+    """
+    params.doc_logger.info(STEPS + "# virsh dommemstat %s --period %d --config" % (params.guest_name, params.mem_period))
+    params.doc_logger.info(RESULT)
+
+
+def virsh_set_period(params, env):
+    """
+    Live set guest memballon meminfo collection period
+    """
+    params.doc_logger.info(STEPS + "# virsh dommemstat %s --period %d --live" % (params.guest_name, params.mem_period))
+    params.doc_logger.info(RESULT)
+
+
+def virsh_dommemstat(params, env):
+    """
+    Check the guest mem usage
+    """
+    params.doc_logger.info(STEPS + "# virsh dommemstat %s" % params.guest_name)
+    # TODO store the mem_period in data ?
+    if not env.get_data('$guest_name.mem_period').data:
+        params.doc_logger.info(RESULT + "actual %d\nrss 319908" % params.curmem)
+    else:
+        params.doc_logger.info(RESULT + """
+actual %d
+swap_in 0
+swap_out 0
+major_fault 567
+minor_fault 2881200
+unused 805660
+available 1017212
+rss 319908
+""" % params.curmem)
+
+
+def check_period_in_xml(params, env):
+    """
+    Check the period info in the xml
+    """
+    params.doc_logger.info(STEPS + "# virsh dumpxml %s | grep memballoon" % params.guest_name)
+    params.doc_logger.info(RESULT + """
+<memballoon model='virtio'>
+...
+  <stats period='%d'/>
+...
+</memballoon>
+    """ % params.mem_period)

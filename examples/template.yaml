@@ -1,0 +1,51 @@
+params:
+    test_case: True
+    full_matrix: False
+    guest_name: 'vm1'
+
+case:
+    - name: test case 1
+      params:
+        guest_xml: 'guest.xml'
+#        pagesize: '2048'
+#        hugetlbfs_mount: '/dev/hugetest'
+#        memtune:
+#          hardlimit: 100
+        restart_libvirtd: True
+        curmem: 1048576
+#        memballoon:
+#          model: 'none'
+        mem_period: 2
+      params_matrix:
+        memballoon:
+          model:
+            - 'none'
+            - 'virtio'
+      test_objs:
+        - mem_test.virsh_set_period
+      modules:
+        - vm_basic
+        - mem_test
+      doc-modules:
+        - vm_basic_doc
+        - mem_test_doc
+
+    - name: test case 2
+      params:
+        guest_xml: 'guest.xml'
+        pagesize: '2048'
+        memtune:
+          hardlimit: 100
+        restart_libvirtd: True
+      params_matrix:
+        hugetlbfs_mount:
+          - '/dev/hugetest'
+          - ''
+      test_objs:
+        - mem_test.check_hugepage_cmdline
+      modules:
+        - vm_basic
+        - mem_test
+      doc-modules:
+        - vm_basic_doc
+        - mem_test_doc

@@ -4,6 +4,9 @@ TODO: only use for debugging
 """
 import os
 import sys
+import yaml
+import itertools
+import copy
 
 # Simple magic for using scripts within a source tree
 BASEDIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -27,6 +30,8 @@ def parse_cmd():
                         help='params will pass to test')
     parser.add_argument('--params-config', dest='params_conf', action='store',
                         help='config file of params will pass to test')
+    parser.add_argument('--template', dest='template', action='store',
+                        help='config file of the template')
     parser.add_argument('--test-objs', dest='test_objs', action='store',
                         default="",
                         help='test objs')
@@ -42,23 +47,22 @@ def parse_cmd():
     return args
 
 
-def load_modules(modules_str):
+def load_modules(modules_list):
     # TODO
     cmd_folder = os.path.realpath('.')
     sys.path.insert(0, cmd_folder)
-    for module in modules_str.split(','):
+    for module in modules_list:
         yield importlib.import_module(module)
 
-def load_objs(test_objs_str):
+def load_objs(test_objs_list):
     # TODO: only support 2 layer
-    for test_obj in test_objs_str.split(','):
+    for test_obj in test_objs_list:
         tmp_module = importlib.import_module(test_obj.split('.')[0])
         yield getattr(tmp_module, test_obj.split('.')[1], None)
 
 def load_params(params_str, params_conf=None):
     params = Params()
     if params_conf:
-        import yaml
         with open(params_conf) as fp:
             data = yaml.load(fp)
             for key, val in data.items():
@@ -72,17 +76,77 @@ def load_params(params_str, params_conf=None):
             setattr(params, key, value)
     return params
 
+
+# Maybe a better helper
+def full_permutations(params_matrix):
+    if isinstance(params_matrix, dict):
+        val_pt = []
+        keys = params_matrix.keys()
+        for key in keys:
+            ret = full_permutations(params_matrix[key])
+            if isinstance(ret, list):
+                val_pt.append(ret)
+            else:
+                val_pt.append([ret])
+        pmt = itertools.product(*val_pt)
+        return [Params(zip(keys, i)) for i in pmt]
+    elif isinstance(params_matrix, list):
+        ret = []
+        for data in params_matrix:
+            tmp = full_permutations(data)
+            if isinstance(tmp, list):
+                ret.extend(tmp)
+            else:
+                ret.append(tmp)
+        return ret
+    elif isinstance(params_matrix, (str, int, float)):
+        return params_matrix
+    else:
+        raise Exception
+
+# This will be a good choise
+def load_template(template_file):
+    with open(template_file) as fp:
+        data = yaml.load(fp)
+
+    cases = data['case']
+    common_params = data['params']
+    for case in cases:
+        params = Params(common_params)
+        if 'params' in case.keys():
+            params.update(case['params'])
+        modules = list(load_modules(case['modules']))
+        doc_modules = list(load_modules(case['doc-modules']))
+        test_objs = list(load_objs(case['test_objs']))
+        if 'params_matrix' in case.keys():
+            for extra_params in full_permutations(case['params_matrix']):
+                new_params = Params(params)
+                new_params.update(extra_params)
+                yield new_params, modules, doc_modules, copy.deepcopy(test_objs)
+        else:
+            yield params, modules, doc_modules, copy.deepcopy(test_objs)
+
 def main():
     args = parse_cmd()
-    modules_gen = load_modules(args.modules)
-    doc_modules = load_modules(args.doc_modules)
-    test_objs_gen = load_objs(args.test_objs)
-    # TODO: support specify test engine
-    d = Demo(list(modules_gen), test_funcs=list(test_objs_gen), doc_modules=list(doc_modules))
-    params = load_params(args.params, args.params_conf)
-    if args.mock:
-        params.mock = True
-    d.run(params)
+    if args.template:
+        for i, data in enumerate(load_template(args.template)):
+            params, modules, doc_modules, test_objs = data
+            d = Demo(modules, test_funcs=test_objs,
+                     doc_modules=doc_modules)
+            d.run(params, 'case%d.file' % i)
+    else:
+        modules_gen = load_modules(args.modules.split(','))
+        doc_modules = load_modules(args.doc_modules.split(','))
+        test_objs_gen = load_objs(args.test_objs.split(','))
+        params = load_params(args.params, args.params_conf)
+
+        if args.mock:
+            params.mock = True
+
+        # TODO: support specify test engine
+        d = Demo(list(modules_gen), test_funcs=list(test_objs_gen),
+                 doc_modules=list(doc_modules))
+        d.run(params)
 
 if __name__ == '__main__':
     main()

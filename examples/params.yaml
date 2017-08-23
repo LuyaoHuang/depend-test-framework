@@ -1,3 +1,6 @@
+test_case: True
+full_matrix: False
+
 guest_name: 'vm1'
 new_vcpu: 10
 maxmem: 1024
@@ -6,7 +9,6 @@ src_host: 'source host'
 cpu_plug: 'up'
 guest_xml: 'guest.xml'
 pagesize: '2048'
-test_case: True
 hugetlbfs_mount: '/dev/hugetest'
 memtune:
     hardlimit: 100
@@ -14,3 +16,4 @@ restart_libvirtd: True
 curmem: 1048576
 memballoon:
     model: 'none'
+mem_period: 2

@@ -145,3 +145,38 @@ def verify_setmem_in_guest(params, env):
     """
     """
     pass
+
+@Action.decorator(1)
+@ParamsRequire.decorator(['guest_name', 'mem_period'])
+@Consumer.decorator('$guest_name.config', Consumer.REQUIRE)
+@Provider.decorator('$guest_name.mem_period_conf', Provider.SET)
+def virsh_set_period_conf(params, env):
+    """
+    """
+    pass
+
+@Action.decorator(1)
+@ParamsRequire.decorator(['guest_name', 'mem_period'])
+@Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
+@Provider.decorator('$guest_name.mem_period', Provider.SET)
+def virsh_set_period(params, env):
+    """
+    """
+    pass
+
+@CheckPoint.decorator(1)
+@ParamsRequire.decorator(['guest_name'])
+@Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
+def virsh_dommemstat(params, env):
+    """
+    """
+    pass
+
+@CheckPoint.decorator(1)
+@ParamsRequire.decorator(['guest_name'])
+@Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
+@Consumer.decorator('$guest_name.mem_period', Consumer.REQUIRE)
+def check_period_in_xml(params, env):
+    """
+    """
+    pass
