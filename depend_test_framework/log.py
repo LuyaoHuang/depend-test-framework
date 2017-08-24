@@ -58,7 +58,7 @@ def get_file_logger(name, file_name, level=logging.INFO):
     formatter = logging.Formatter(FILE_FMT)
 
     # TODO: file put in config
-    file_handler = logging.FileHandler(file_name)
+    file_handler = logging.FileHandler(file_name, mode='w')
     #file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)

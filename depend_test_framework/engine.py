@@ -415,7 +415,7 @@ class Demo(Engine):
 
     def run(self, params, doc_file=None):
         self.params = params
-        LOGGER.debug("params: %s", params)
+        LOGGER.debug(self.params.pretty_display())
         # TODO
         self.params.logger = LOGGER
         doc_path = 'doc.file' if not doc_file else doc_file

@@ -1,10 +1,10 @@
 params:
     test_case: True
-    full_matrix: False
+    full_matrix: True
     guest_name: 'vm1'
 
 case:
-    - name: test case 1
+    - name: test use virsh to set period
       params:
         guest_xml: 'guest.xml'
         restart_libvirtd: True
@@ -24,7 +24,7 @@ case:
         - vm_basic_doc
         - mem_test_doc
 
-    - name: test case 2
+    - name: test check huge page command line
       params:
         guest_xml: 'guest.xml'
         pagesize: '2048'

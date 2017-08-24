@@ -213,7 +213,10 @@ class Container(set):
 
 class Params(dict):
     def __getattr__(self, key):
-        return self.get(key)
+        value = self.get(key)
+        if isinstance(value, dict) and not isinstance(value, self.__class__):
+            value = self[key] = self.__class__(value)
+        return value
 
     def __setattr__(self, key, value):
         self[key] = value
@@ -235,10 +238,11 @@ class Params(dict):
         return self.key_set > target.key_set
 
     def pretty_display(self):
-        LOGGER.info("=" * 8 + "Parameters" + "=" * 8)
+        strings = ''
+        strings += ("=" * 8 + "Parameters" + "=" * 8 + "\n")
         for key, value in self.items():
-            LOGGER.info("    Param %s is %s" % (key, value))
-        LOGGER.info("=" * 20)
+            strings += ("    Param %s is %s\n" % (key, value))
+        strings += ("=" * 20 + "\n")
 
 class Memory(Container):
     pass
