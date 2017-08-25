@@ -288,7 +288,7 @@ def virsh_dommemstat(params, env):
     """
     params.doc_logger.info(STEPS + "# virsh dommemstat %s" % params.guest_name)
     # TODO store the mem_period in data ?
-    if not env.get_data('$guest_name.mem_period').data:
+    if not env.get_data('$guest_name.mem_period') or not env.get_data('$guest_name.mem_period').data:
         params.doc_logger.info(RESULT + "actual %d\nrss 319908" % params.curmem)
     else:
         params.doc_logger.info(RESULT + """

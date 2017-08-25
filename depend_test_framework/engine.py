@@ -15,6 +15,14 @@ LOGGER = get_logger(__name__)
 time_log = make_timing_logger(LOGGER)
 
 
+# TODO: more offical
+def get_name(obj):
+    if getattr(obj, '__name__', None):
+        return obj.__name__
+    else:
+        return obj.__class__.__name__
+
+
 class Engine(object):
     def __init__(self, modules, doc_modules):
         self.modules = modules
@@ -44,12 +52,12 @@ class Engine(object):
             for _, func in inspect.getmembers(module, is_Hybrid):
                 _handle_func(func, self.hybrids)
 
-        # TODO: maybe we should allow the same name func
-        for module in self.doc_modules:
-            for name, func in inspect.getmembers(module, inspect.isfunction):
-                if name in self.doc_funcs.keys():
-                    raise Exception("Use the same func %s in the module %s" % (name, module.__name__))
-                self.doc_funcs[name] = func
+        for func in self.all_funcs:
+            for module in self.doc_modules:
+                name = get_name(func)
+                if getattr(module, name, None):
+                    self.doc_funcs[name] = getattr(module, name)
+                    break
 
     def run(self):
         """
@@ -227,6 +235,8 @@ class Engine(object):
         doc_func = self.doc_funcs[doc_func_name]
 
         mist = self._check_mists(mists, self.env, func)
+        LOGGER.debug("Func %s mist %s", doc_func, mist)
+        LOGGER.debug("Env: %s", self.env)
         if mist:
             if mist.__doc__:
                 self.params.doc_logger.info("Desciption: %s" % mist.__doc__)
@@ -243,17 +253,21 @@ class Engine(object):
 
             ret = doc_func(self.params, self.env)
         self.env = self.env.gen_transfer_env(func)
-        LOGGER.debug("Env: %s, func: %s", self.env, func)
+        if self.env is None:
+            raise Exception("Fail to gen transfer env")
+        LOGGER.debug("Env transfer to %s", self.env)
 
         if ret and mists is not None:
             LOGGER.info('Add a new mist')
             mists.append(ret)
 
-        if not check or is_CheckPoint(func):
+        if not check:
             return step_index
 
         checkpoints = self.find_checkpoints()
         for i, checkpoint in enumerate(checkpoints):
+            if checkpoint == func:
+                continue
             step_index = self.gen_one_step_doc(checkpoint,
                 step_index=step_index, mists=mists)
 

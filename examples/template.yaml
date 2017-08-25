@@ -2,11 +2,11 @@ params:
     test_case: True
     full_matrix: True
     guest_name: 'vm1'
+    guest_xml: 'guest.xml'
 
 case:
     - name: test use virsh to set period
       params:
-        guest_xml: 'guest.xml'
         restart_libvirtd: True
         curmem: 1048576
         mem_period: 2
@@ -26,8 +26,8 @@ case:
 
     - name: test check huge page command line
       params:
-        guest_xml: 'guest.xml'
         pagesize: '2048'
+        curmem: 1048576
         memtune:
           hardlimit: 100
         restart_libvirtd: True
@@ -43,3 +43,24 @@ case:
       doc-modules:
         - vm_basic_doc
         - mem_test_doc
+
+    - name: test ivshmem 
+      params:
+        pagesize: '2048'
+        curmem: 1048576
+        restart_libvirtd: True
+      params_matrix:
+        ivshmem:
+          - name: shmem1
+            model: ivshmem-plain
+            size: 4096
+      test_objs:
+        - test_ivshmem.check_ivshmem_audit
+      modules:
+        - vm_basic
+        - mem_test
+        - test_ivshmem
+      doc-modules:
+        - vm_basic_doc
+        - mem_test_doc
+        - test_ivshmem_doc

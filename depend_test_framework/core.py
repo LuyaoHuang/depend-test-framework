@@ -445,6 +445,8 @@ class Env(object):
         for key, value in self.items():
             if value.data and key not in target.keys():
                 return False
+            if value.data is False and key in target.keys() and target[key].data:
+                return False
             if not value._check_include(target[key]):
                 return False
         return True
