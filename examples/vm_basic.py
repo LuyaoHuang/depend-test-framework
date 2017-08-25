@@ -1,7 +1,7 @@
 from utils import enter_depend_test, run_cmd
 enter_depend_test()
 
-from depend_test_framework.core import Action, ParamsRequire, Provider, Consumer, TestObject
+from depend_test_framework.core import Action, ParamsRequire, Provider, Consumer, TestObject, Graft, Cut
 
 
 PARAM = {}
@@ -12,7 +12,8 @@ ENV = {}
 @ParamsRequire.decorator(['guest_name'])
 @Consumer.decorator('$guest_name.active', Consumer.REQUIRE_N)
 @Consumer.decorator('$guest_name.config', Consumer.REQUIRE)
-@Provider.decorator('$guest_name.active', Provider.SET)
+#@Provider.decorator('$guest_name.active', Provider.SET)
+@Graft.decorator('$guest_name.config', '$guest_name.active')
 def start_guest(params, env):
     guest = params.guest_name
     cmd = 'virsh start ' + guest
@@ -25,7 +26,8 @@ def start_guest(params, env):
 @Action.decorator(1)
 @ParamsRequire.decorator(['guest_name'])
 @Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
-@Provider.decorator('$guest_name.active', Provider.CLEAR)
+#@Provider.decorator('$guest_name.active', Provider.CLEAR)
+@Cut.decorator('$guest_name.active')
 def destroy_guest(params, env):
     guest = params.guest_name
     cmd = 'virsh destroy ' + guest

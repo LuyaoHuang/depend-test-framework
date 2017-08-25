@@ -5,11 +5,12 @@ import inspect
 import itertools
 import random
 from collections import OrderedDict
-from core import is_Action, is_CheckPoint, Container, is_Hybrid, Env, get_all_depend, Params, get_func_params_require, Provider, Consumer, TestObject, is_TestObject, MistDeadEndException, MistClearException
+from core import is_Action, is_CheckPoint, Container, is_Hybrid, Env, get_all_depend, Params, get_func_params_require, Provider, Consumer, TestObject, is_TestObject, MistDeadEndException, MistClearException, is_Graft, Graft
 from utils import pretty
 from log import get_logger, prefix_logger, get_file_logger, make_timing_logger
 from algorithms import route_permutations
 from case import Case
+import copy
 
 LOGGER = get_logger(__name__)
 time_log = make_timing_logger(LOGGER)
@@ -30,6 +31,7 @@ class Engine(object):
         self.checkpoints = Container()
         self.actions = Container()
         self.hybrids = Container()
+        self.grafts = Container()
         # TODO: not use dict
         self.doc_funcs = {}
         self.env = Env()
@@ -52,6 +54,9 @@ class Engine(object):
             for _, func in inspect.getmembers(module, is_Hybrid):
                 _handle_func(func, self.hybrids)
 
+            for _, func in inspect.getmembers(module, is_Graft):
+                self.grafts |= Container(get_all_depend(func, depend_cls=Graft))
+
         for func in self.all_funcs:
             for module in self.doc_modules:
                 name = get_name(func)
@@ -67,7 +72,7 @@ class Engine(object):
 
     def compute_depend_items(self, func):
         """
-        broken
+        broken and not been used
         """
         pos_items = []
         requires = get_all_depend(func, depend_cls=Consumer)
@@ -168,6 +173,14 @@ class Engine(object):
             tmp_requires = get_all_depend(func, [Provider.SET], depend_cls=Provider)
             requires |= Container(tmp_requires)
 
+        new_requires = Container()
+        for graft in self.grafts:
+            for require in requires:
+                new_req = graft.gen_trans_depend(require)
+                if new_req:
+                    new_requires.add(new_req)
+        requires |= new_requires
+
         nodes = []
         dep_map = {}
         for i in range(len(requires) + 1):
@@ -175,7 +188,7 @@ class Engine(object):
 
         for node in nodes:
             tmp_e = Env()
-            tmp_e.set_from_depends(node)
+            tmp_e.call_effect_env(node)
             dep_map[tmp_e] = {}
 
         for func in self.actions|self.hybrids:
@@ -194,6 +207,9 @@ class Engine(object):
         pass
 
     def get_all_depend_consumer(self, depend):
+        """
+        Not been used
+        """
         consumers = []
         if depend.type == Provider.SET:
             req_types = [Consumer.REQUIRE]

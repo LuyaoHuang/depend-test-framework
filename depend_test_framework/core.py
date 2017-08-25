@@ -132,6 +132,41 @@ class Dependency(Entrypoint):
     def __repr__(self):
         return "<Dependency depend='%s' type='%s'>" % (self.env_depend, self.type)
 
+    def effect_env(self, env):
+        raise NotImplementedError
+
+
+class Graft(Entrypoint):
+    """
+    TODO
+    """
+    def __init__(self, src, tgt):
+        self.src = src
+        self.tgt = tgt
+
+    def effect_env(self, env):
+        sub_env = env.get_data(self.src)
+        new_env = copy.deepcopy(sub_env)
+        env.set_data(self.tgt, new_env)
+
+    def gen_trans_depend(self, dep):
+        # TODO this is a work around
+        if self.src in dep.env_depend:
+            return dep.__class__(dep.env_depend.replace(self.src, self.tgt), dep.type)
+
+
+class Cut(Entrypoint):
+    """
+    TODO
+    """
+    def __init__(self, src):
+        self.src = src
+
+    def effect_env(self, env):
+        sub_env = env.get_data(self.src)
+        sub_env.childs = {}
+        sub_env.data = False
+
 
 class Provider(Dependency):
     CLEAR = "clear"
@@ -146,6 +181,14 @@ class Provider(Dependency):
     def set(cls, *args, **kwargs):
         ret = super(Provider, cls).decorator(*args, **kwargs)
         return ret
+
+    def effect_env(self, env):
+        if self.type == self.SET:
+            need_set = True
+        elif self.type == self.CLEAR:
+            need_set = False
+
+        env.set_data(self.env_depend, need_set)
 
 
 class Consumer(Dependency):
@@ -162,6 +205,8 @@ class Consumer(Dependency):
         ret = super(Consumer, cls).decorator(*args, **kwargs)
         return ret
 
+    def effect_env(self, env):
+        raise Exception
 
 class ParamsRequire(Entrypoint):
     def __init__(self, param_depend):
@@ -190,15 +235,14 @@ class Mist(object):
         self.func = func
         self._areas = {}
         for name, data in area.items():
-            start, end = data
-            self.add_area_env(name, start, end)
+            self.add_area_env(name, *data)
 
     def add_area_env(self, name, start, end):
         env = Env()
-        env.set_from_depends(start)
+        env.call_effect_env(start)
         start_env = env
         env = Env()
-        env.set_from_depends(end)
+        env.call_effect_env(end)
         end_env = env
         self._areas[name] = (start_env, end_env)
 
@@ -261,33 +305,18 @@ class Env(object):
         self.parent = parent
         self.childs = childs if childs else {} 
         self._path = path
-#    def __getattr__(self, key):
-#        value = self.get(key)
-#        if not value and not key.startswith("_"):
-#            value = child_env = self.__class__()
-#            self[key] = child_env
-#        return value
-
-#    def __setattr__(self, key, value):
-#        if isinstance(value, self.__class__):
-#            self[key] = value
-#        else:
-#            super(Env, self).__setattr__('_data', value)
 
     def __getitem__(self, key):
         value = self.childs.get(key)
         if not value and not key.startswith("_"):
-            if self._path:
-                child_path = '%s.%s' % (self._path, key)
-            else:
-                child_path = '%s' % key
-            value = child_env = self.__class__(parent=self, path=child_path)
+            value = child_env = self.__class__(parent=self, path=key)
             self.childs[key] = child_env
         return value
 
     def __setitem__(self, key, value):
         if isinstance(value, self.__class__):
             self.childs[key] = value
+            value.parent = self
         else:
             child_env = self[key]
             child_env.data = value
@@ -330,7 +359,11 @@ class Env(object):
         env = self._get_data_from_path(path, True)
         if env is None:
             raise Exception
-        env.data = value
+        if isinstance(value, self.__class__):
+            env.childs = value.childs
+            env.data = value.data
+        else:
+            env.data = value
 
     def hit_require(self, depend):
         if depend.type == Consumer.REQUIRE:
@@ -341,8 +374,8 @@ class Env(object):
             raise NotImplementedError
 
         ret = self._get_data_from_path(depend.env_depend)
-        if ret:
-            return require == bool(ret.data)
+        if ret and (ret.struct_table() != '{}' or ret.data):
+            return require
         else:
             return not require
 
@@ -353,19 +386,9 @@ class Env(object):
 
         return True
 
-    def set_from_depends(self, depends):
-        for depend in depends:
-            self.set_from_depend(depend)
-
-    def set_from_depend(self, depend):
-        if depend.type == Provider.SET:
-            need_set = True
-        elif depend.type == Provider.CLEAR:
-            need_set = False
-        else:
-            return
-
-        self._set_data_from_path(depend.env_depend, need_set)
+    def call_effect_env(self, objs):
+        for obj in objs:
+            obj.effect_env(self)
 
     def gen_transfer_env(self, func):
         """
@@ -375,8 +398,8 @@ class Env(object):
         if not self.hit_requires(con):
             return
         new_env = copy.deepcopy(self)
-        pro = get_all_depend(func, depend_cls=Provider)
-        new_env.set_from_depends(pro)
+        objs = get_all_depend(func, depend_cls=(Provider, Graft))
+        new_env.call_effect_env(objs)
         return new_env
 
     @classmethod
@@ -437,8 +460,13 @@ class Env(object):
             return True
         return False
 
+    def _full_path(self):
+        if self.parent and self.parent._full_path():
+            return '%s.%s' % (self.parent._full_path(), self._path)
+        return self._path
+
     def __repr__(self):
-        return "<%s path='%s' data='%s'>" % (self.__class__.__name__, self._path, self.data)
+        return "<%s path='%s' data='%s'>" % (self.__class__.__name__, self._full_path(), self.data)
 
     def __le__(self, target):
         return self._check_include(target)
@@ -471,6 +499,12 @@ def is_CheckPoint(obj):
 
 def is_Hybrid(obj):
     return _check_func_entrys(obj, Hybrid)
+
+def is_Graft(obj):
+    return _check_func_entrys(obj, Graft)
+
+def is_Cut(obj):
+    return _check_func_entrys(obj, Cut)
 
 def get_all_depend(func, depend_types=None,
                    depend_cls=Dependency, ret_list=True):
