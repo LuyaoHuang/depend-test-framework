@@ -186,23 +186,28 @@ class Mist(object):
     """
     TODO Need explain what's this
     """
-    def __init__(self, start, end, func):
-        self.start = start
-        self.end = end
+    def __init__(self, area, func):
         self.func = func
+        self._areas = {}
+        for name, data in area.items():
+            start, end = data
+            self.add_area_env(name, start, end)
+
+    def add_area_env(self, name, start, end):
         env = Env()
         env.set_from_depends(start)
-        self._start_env = env
+        start_env = env
         env = Env()
         env.set_from_depends(end)
-        self._end_env = env
+        end_env = env
+        self._areas[name] = (start_env, end_env)
 
     def reach(self, env, func):
         new_env = env.gen_transfer_env(func)
-        if self._start_env <= env and self._end_env <= new_env:
-            return True
-        else:
-            return False
+        for name, data in self._areas.items():
+            start_env, end_env = data
+            if start_env <= env and end_env <= new_env:
+                return name
 
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)

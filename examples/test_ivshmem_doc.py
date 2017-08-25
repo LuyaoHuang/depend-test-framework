@@ -64,4 +64,4 @@ type=VIRT_RESOURCE ... msg='virt=kvm resrc=shmem reason=attach vm="%s" uuid=c156
                params.ivshmem.name,))
         raise MistClearException
 
-    return Mist(start, end, check_audit_log)
+    return Mist({"attach": (start, end)}, check_audit_log)

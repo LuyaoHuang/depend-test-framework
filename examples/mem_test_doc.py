@@ -33,12 +33,12 @@ def host_hugepage_config(params, env):
                  Provider('$guest_name.hugepage', Provider.SET)]
         end = [Provider('$guest_name.active', Provider.SET),
                Provider('$guest_name.hugepage', Provider.SET)]
-        def mist_host_hugepage(func, params, env):
+        def mist_host_hugepage(name, func, params, env):
             params.doc_logger.info(STEPS + "# virsh start %s" % params.guest_name)
             params.doc_logger.info(RESULT + "error: Failed to start domain %s" % params.guest_name)
             params.doc_logger.info("error: internal error hugepages are disabled by administrator config")
             raise MistDeadEndException()
-        return Mist(start, end, mist_host_hugepage)
+        return Mist({'active': (start, end)}, mist_host_hugepage)
 
 
 def guest_hugepage_settings(params, env):
@@ -150,7 +150,7 @@ def virsh_memtune(params, env):
         end = [Provider('$guest_name.active', Provider.SET),
                  Provider('$guest_name.memtune', Provider.SET)]
 
-        def restart_and_memtune(func, params, env):
+        def restart_and_memtune(name, func, params, env):
             params.doc_logger.info(STEPS + """
         # service libvirtd restart
         Stopping libvirtd daemon: [ OK ]
@@ -159,7 +159,7 @@ def virsh_memtune(params, env):
             func(params, env)
             raise MistClearException
 
-        return Mist(start, end, restart_and_memtune)
+        return Mist({"x": (start, end)}, restart_and_memtune)
 
 
 def virsh_memtune_conf(params, env):
@@ -231,14 +231,14 @@ def set_memballoon_xml(params, env):
         end = [Provider('$guest_name.active', Provider.SET),
                  Provider('$guest_name.curmem', Provider.SET)]
 
-        def restart_and_memtune(func, params, env):
+        def no_memballon(name, func, params, env):
             params.doc_logger.info(STEPS + "# virsh setmem %s %d" % (params.guest_name, params.curmem))
             params.doc_logger.info(RESULT + "error: Requested operation is not valid: " +
                 "Unable to change memory of active domain " +
                 "without the balloon device and guest OS balloon driver")
             raise MistDeadEndException
 
-        return Mist(start, end, restart_and_memtune)
+        return Mist({"set_mem": (start, end)}, no_memballon)
 
 
 # TODO maybe we can merge this two to one func ?

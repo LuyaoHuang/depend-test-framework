@@ -213,11 +213,13 @@ class Engine(object):
         self.params.doc_logger.info(msg)
 
     def _check_mists(self, mists, env, func):
+        # TODO support mutli mist
         if not mists:
             return
         for mist in mists:
-            if mist.reach(env, func):
-                return mist
+            name = mist.reach(env, func)
+            if name:
+                return name, mist
 
     def gen_one_step_doc(self, func, step_index=None, check=False, mists=None):
         if getattr(func, '__name__', None):
@@ -238,13 +240,14 @@ class Engine(object):
         LOGGER.debug("Func %s mist %s", doc_func, mist)
         LOGGER.debug("Env: %s", self.env)
         if mist:
-            if mist.__doc__:
-                self.params.doc_logger.info("Desciption: %s" % mist.__doc__)
+            name, mist_func = mist
+            if mist_func.__doc__:
+                self.params.doc_logger.info("Desciption: %s" % mist_func.__doc__)
             # TODO: here will raise a exception which require the caller handle this
             try:
-                mist(doc_func, self.params, self.env)
+                mist_func(name, doc_func, self.params, self.env)
             except MistClearException:
-                mists.remove(mist)
+                mists.remove(mist_func)
             # TODO: mist in the mist
             ret = None
         else:
@@ -258,7 +261,7 @@ class Engine(object):
         LOGGER.debug("Env transfer to %s", self.env)
 
         if ret and mists is not None:
-            LOGGER.info('Add a new mist')
+            LOGGER.debug('Add a new mist %s', ret)
             mists.append(ret)
 
         if not check:
