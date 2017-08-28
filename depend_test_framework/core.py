@@ -308,7 +308,7 @@ class Env(object):
 
     def __getitem__(self, key):
         value = self.childs.get(key)
-        if not value and not key.startswith("_"):
+        if value is None and not key.startswith("_"):
             value = child_env = self.__class__(parent=self, path=key)
             self.childs[key] = child_env
         return value
@@ -361,9 +361,14 @@ class Env(object):
             raise Exception
         if isinstance(value, self.__class__):
             env.childs = value.childs
+            env._change_parent(env)
             env.data = value.data
         else:
             env.data = value
+
+    def _change_parent(self, tgt):
+        for child in self.childs.values():
+            child.parent = tgt
 
     def hit_require(self, depend):
         if depend.type == Consumer.REQUIRE:
@@ -374,7 +379,7 @@ class Env(object):
             raise NotImplementedError
 
         ret = self._get_data_from_path(depend.env_depend)
-        if ret and (ret.struct_table() != '{}' or ret.data):
+        if ret is not None and (ret.struct_table() != '{}' or ret.data):
             return require
         else:
             return not require
@@ -418,7 +423,7 @@ class Env(object):
         return self.__reduce_ex__(None)
 
     def __reduce_ex__(self, protocol):
-        return (self.__class__, (self.data, self.parent, self.childs),)
+        return (self.__class__, (self.data, self.parent, self.childs, self._path),)
 
     def __hash__(self):
         """
@@ -461,7 +466,7 @@ class Env(object):
         return False
 
     def _full_path(self):
-        if self.parent and self.parent._full_path():
+        if self.parent is not None and self.parent._full_path():
             return '%s.%s' % (self.parent._full_path(), self._path)
         return self._path
 
@@ -476,7 +481,7 @@ class Env(object):
 
     def _check_include(self, target):
         for key, value in self.items():
-            if value.data and key not in target.keys():
+            if value.data and (key not in target.keys() or not target[key].data):
                 return False
             if value.data is False and key in target.keys() and target[key].data:
                 return False

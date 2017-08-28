@@ -45,11 +45,11 @@ def check_ivshmem_audit(params, env):
     params.doc_logger.info(STEPS + "Make sure the auditd is running")
 
     start = [Provider('$guest_name.active', Provider.SET),
-             Provider('$guest_name.ivshmem', Provider.CLEAR)]
+             Provider('$guest_name.active.ivshmem', Provider.CLEAR)]
     end = [Provider('$guest_name.active', Provider.SET),
-             Provider('$guest_name.ivshmem', Provider.SET)]
+             Provider('$guest_name.active.ivshmem', Provider.SET)]
 
-    def check_audit_log(func, params, env):
+    def check_audit_log(name, func, params, env):
         """
         Check the audit log
         """

@@ -7,8 +7,7 @@ from depend_test_framework.core import Action, ParamsRequire, Provider, Consumer
 @Action.decorator(1)
 @ParamsRequire.decorator(['guest_name', 'ivshmem'])
 @Consumer.decorator('$guest_name.config', Consumer.REQUIRE)
-@Consumer.decorator('$guest_name.active', Consumer.REQUIRE_N)
-@Provider.decorator('$guest_name.ivshmem', Provider.SET)
+@Provider.decorator('$guest_name.config.ivshmem', Provider.SET)
 def set_ivshmem_device(params, env):
     """
     """
@@ -16,21 +15,18 @@ def set_ivshmem_device(params, env):
 
 @CheckPoint.decorator(2)
 @ParamsRequire.decorator(['guest_name', 'ivshmem'])
-@Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
-@Consumer.decorator('$guest_name.ivshmem', Consumer.REQUIRE)
+@Consumer.decorator('$guest_name.active.ivshmem', Consumer.REQUIRE)
 def check_ivshmem_in_guest(params, env):
     pass
 
 @CheckPoint.decorator(1)
 @ParamsRequire.decorator(['guest_name', 'ivshmem'])
-@Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
-@Consumer.decorator('$guest_name.ivshmem', Consumer.REQUIRE)
+@Consumer.decorator('$guest_name.active.ivshmem', Consumer.REQUIRE)
 def check_ivshmem_cmdline(params, env):
     pass
 
 @CheckPoint.decorator(1)
 @ParamsRequire.decorator(['guest_name', 'ivshmem'])
-@Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
-@Consumer.decorator('$guest_name.ivshmem', Consumer.REQUIRE)
+@Consumer.decorator('$guest_name.config.ivshmem', Consumer.REQUIRE)
 def check_ivshmem_audit(params, env):
     pass

@@ -30,9 +30,9 @@ def host_hugepage_config(params, env):
     else:
         # We need do some other things after env reached or require
         start = [Provider('$guest_name.active', Provider.CLEAR),
-                 Provider('$guest_name.hugepage', Provider.SET)]
+                 Provider('$guest_name.config.hugepage', Provider.SET)]
         end = [Provider('$guest_name.active', Provider.SET),
-               Provider('$guest_name.hugepage', Provider.SET)]
+               Provider('$guest_name.config.hugepage', Provider.SET)]
         def mist_host_hugepage(name, func, params, env):
             params.doc_logger.info(STEPS + "# virsh start %s" % params.guest_name)
             params.doc_logger.info(RESULT + "error: Failed to start domain %s" % params.guest_name)
@@ -94,7 +94,7 @@ def verify_mem_lock(params, env):
     """
     Check mlock function
     """
-    if env.get_data('$guest_name.memtune') and params.memtune.hardlimit:
+    if env.get_data('$guest_name.active.memtune') and params.memtune.hardlimit:
         value = int(params.memtune.hardlimit) * 1024 * 1024
     else:
         value = 'unlimited'
@@ -145,10 +145,8 @@ def virsh_memtune(params, env):
     params.doc_logger.info(STEPS + "# virsh memtune %s %s --live" % (params.guest_name, options))
     params.doc_logger.info(RESULT + "")
     if params.restart_libvirtd:
-        start = [Provider('$guest_name.active', Provider.SET),
-                 Provider('$guest_name.memtune', Provider.SET)]
-        end = [Provider('$guest_name.active', Provider.SET),
-                 Provider('$guest_name.memtune', Provider.SET)]
+        start = [Provider('$guest_name.active.memtune', Provider.SET)]
+        end = [Provider('$guest_name.active.memtune', Provider.SET)]
 
         def restart_and_memtune(name, func, params, env):
             params.doc_logger.info(STEPS + """
@@ -227,9 +225,10 @@ def set_memballoon_xml(params, env):
         """ % params.memballoon.model)
 
     if params.memballoon.model == 'none':
+        # TODO: add a new mist type to support check the provider
         start = [Provider('$guest_name.active', Provider.SET)]
         end = [Provider('$guest_name.active', Provider.SET),
-                 Provider('$guest_name.curmem', Provider.SET)]
+               Provider('$guest_name.active.curmem', Provider.SET)]
 
         def no_memballon(name, func, params, env):
             params.doc_logger.info(STEPS + "# virsh setmem %s %d" % (params.guest_name, params.curmem))
@@ -288,7 +287,7 @@ def virsh_dommemstat(params, env):
     """
     params.doc_logger.info(STEPS + "# virsh dommemstat %s" % params.guest_name)
     # TODO store the mem_period in data ?
-    if not env.get_data('$guest_name.mem_period') or not env.get_data('$guest_name.mem_period').data:
+    if not env.get_data('$guest_name.active.mem_period') or not env.get_data('$guest_name.active.mem_period').data:
         params.doc_logger.info(RESULT + "actual %d\nrss 319908" % params.curmem)
     else:
         params.doc_logger.info(RESULT + """

@@ -30,3 +30,12 @@ def test_env():
     assert e2 >= e
     assert e2.__repr__() == "<Env path='' data='None'>"
     assert e2['a']['c'].__repr__() == "<Env path='a.c' data='1'>"
+
+    e3 = Env()
+    e3.set_data('a.c', False)
+    assert e3.get_data('a.c').data == False
+    e4 = Env()
+    e4.set_data('d', True)
+    e3.set_data('a.c', e4)
+    assert e3.struct_table() == "{ a: { c: { d: {},},},}"
+    assert e3.get_data('a.c.d').__repr__() == "<Env path='a.c.d' data='True'>"

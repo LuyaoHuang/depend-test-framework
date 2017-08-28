@@ -271,10 +271,14 @@ class Engine(object):
                 self.params.doc_logger.info("Desciption: %s" % doc_func.__doc__)
 
             ret = doc_func(self.params, self.env)
-        self.env = self.env.gen_transfer_env(func)
-        if self.env is None:
+
+        LOGGER.debug("Start transfer env, func: %s env: %s", func, self.env)
+        new_env = self.env.gen_transfer_env(func)
+        if new_env is None:
             raise Exception("Fail to gen transfer env")
-        LOGGER.debug("Env transfer to %s", self.env)
+
+        LOGGER.debug("Env transfer to %s", new_env)
+        self.env = new_env
 
         if ret and mists is not None:
             LOGGER.debug('Add a new mist %s', ret)
