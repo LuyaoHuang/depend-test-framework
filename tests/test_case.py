@@ -19,3 +19,8 @@ def test_case():
     assert not c1 < c2
 
     assert list(c1.steps) == [1,2,3]
+    assert c1.step_num == 3
+    c3 = c1 + c2
+    assert list(c3.steps) == [1,2,3,10,4]
+    assert list(c1.steps) == [1,2,3]
+    assert list(c2.steps) == [10, 4]

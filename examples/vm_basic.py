@@ -12,7 +12,6 @@ ENV = {}
 @ParamsRequire.decorator(['guest_name'])
 @Consumer.decorator('$guest_name.active', Consumer.REQUIRE_N)
 @Consumer.decorator('$guest_name.config', Consumer.REQUIRE)
-#@Provider.decorator('$guest_name.active', Provider.SET)
 @Graft.decorator('$guest_name.config', '$guest_name.active')
 def start_guest(params, env):
     guest = params.guest_name
@@ -26,7 +25,6 @@ def start_guest(params, env):
 @Action.decorator(1)
 @ParamsRequire.decorator(['guest_name'])
 @Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
-#@Provider.decorator('$guest_name.active', Provider.CLEAR)
 @Cut.decorator('$guest_name.active')
 def destroy_guest(params, env):
     guest = params.guest_name

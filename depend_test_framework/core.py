@@ -148,6 +148,8 @@ class Graft(Entrypoint):
         sub_env = env.get_data(self.src)
         new_env = copy.deepcopy(sub_env)
         env.set_data(self.tgt, new_env)
+        if not sub_env.data:
+            sub_env.data = True
 
     def gen_trans_depend(self, dep):
         # TODO this is a work around
@@ -443,6 +445,8 @@ class Env(object):
         return ret
 
     def __cmp__(self, target):
+        if not isinstance(target, self.__class__):
+            return False
         return self.struct_table() == target.struct_table()
 
     def __eq__(self, target):

@@ -2,7 +2,9 @@ params:
     test_case: True
     full_matrix: True
     guest_name: 'vm1'
+    extra_check: False
     guest_xml: 'guest.xml'
+    mist_rules: 'split'
 
 case:
     - name: test use virsh to set period

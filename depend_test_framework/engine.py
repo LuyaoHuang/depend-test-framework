@@ -4,13 +4,15 @@ Test Engine
 import inspect
 import itertools
 import random
+import contextlib
 from collections import OrderedDict
+import copy
+
 from core import is_Action, is_CheckPoint, Container, is_Hybrid, Env, get_all_depend, Params, get_func_params_require, Provider, Consumer, TestObject, is_TestObject, MistDeadEndException, MistClearException, is_Graft, Graft
 from utils import pretty
 from log import get_logger, prefix_logger, get_file_logger, make_timing_logger
 from algorithms import route_permutations
 from case import Case
-import copy
 
 LOGGER = get_logger(__name__)
 time_log = make_timing_logger(LOGGER)
@@ -275,6 +277,7 @@ class Engine(object):
         LOGGER.debug("Start transfer env, func: %s env: %s", func, self.env)
         new_env = self.env.gen_transfer_env(func)
         if new_env is None:
+            import pdb; pdb.set_trace()
             raise Exception("Fail to gen transfer env")
 
         LOGGER.debug("Env transfer to %s", new_env)
@@ -298,25 +301,21 @@ class Engine(object):
 
     def run_one_step(self, func, check=True, doc=False):
         # TODO: merge this method and find_all_way_to_target to one method
-        with prefix_logger(LOGGER, "\033[94mAction:\033[0m", new_name=func.__module__):
-            # TODO
-            if is_TestObject(func):
-                func = func()
+        if is_TestObject(func):
+            func = func()
 
-            if func.__doc__:
-                self.full_logger("Desciption: %s" % func.__doc__)
-            func(self.params, self.env)
+        if func.__doc__:
+            self.full_logger("Desciption: %s" % func.__doc__)
+        func(self.params, self.env)
         self.env = self.env.gen_transfer_env(func)
         LOGGER.debug("Env: %s, func: %s", self.env, func)
         if not check:
             return
         checkpoints = self.find_checkpoints()
         for i, checkpoint in enumerate(checkpoints):
-            with prefix_logger(LOGGER, "\033[92mCheckpoint%s:\033[0m" % str(i+1),
-                               new_name=checkpoint.__module__):
-                if checkpoint.__doc__:
-                    self.full_logger("Desciption: %s" % checkpoint.__doc__)
-                checkpoint(self.params, self.env)
+            if checkpoint.__doc__:
+                self.full_logger("Desciption: %s" % checkpoint.__doc__)
+            checkpoint(self.params, self.env)
 
     def find_all_way_to_target(self, target_env, random_cleanup=True):
         for tgt_env in self.find_suit_envs(target_env, 2):
@@ -326,8 +325,7 @@ class Engine(object):
                 if random_cleanup:
                     cleanup_steps = random.choice(cleanups)
                 else:
-                    # TODO use the shortest way
-                    raise NotImplementedError
+                    cleanup_steps = min(cleanups)
             else:
                 cleanup_steps = None
 
@@ -336,6 +334,89 @@ class Engine(object):
                 case_obj = Case(case, tgt_env=tgt_env,
                                 cleanups=cleanup_steps)
                 yield case_obj
+
+    def find_mist_routes(self, mist, src_env=None):
+        routes = []
+        if src_env is None:
+            src_env = self.env
+
+        for name, data in mist._areas.items():
+            start_env, end_env = data
+            for tgt_start_env in self.find_suit_envs(start_env, 2):
+                if tgt_start_env == src_env:
+                    cases = None
+                else:
+                    cases = self.compute_route_permutations(tgt_start_env, src_env=src_env)
+                    if not cases:
+                        continue
+                for tgt_end_env in self.dep_map[tgt_start_env].keys():
+                    if end_env <= tgt_end_env:
+                        funcs = self.dep_map[tgt_start_env][tgt_end_env]
+                        if cases:
+                            for data in itertools.product(cases, funcs):
+                                case = list(data[0])
+                                case.append(data[1])
+                                case_obj = Case(case, tgt_env=tgt_end_env)
+                                yield case_obj
+                        else:
+                            for func in funcs:
+                                case_obj = Case([func], tgt_env=tgt_end_env)
+                                yield case_obj
+
+    def gen_mist_cases(self, mist, old_case, src_env=None, test_func=None):
+        # Here we get a new mist in the test func
+        # we need to trigger this mist
+        if not src_env:
+            src_env = self.env
+        extra_steps = list(self.find_mist_routes(mist, src_env))
+        history_steps = Case(list(old_case.steps), tgt_env=old_case.tgt_env, cleanups=old_case.cleanups)
+        if test_func:
+            history_steps.append(test_func)
+        for extra_step in extra_steps:
+            new_case = history_steps + extra_step
+            LOGGER.debug("create a new case: %s", list(new_case.steps))
+            LOGGER.debug("history steps: %s, extra_step: %s", list(history_steps.steps), list(extra_step.steps))
+            yield new_case
+
+    def run_case(self, case, case_id, test_func=None, need_cleanup=None):
+        step_index = 1
+        mists = []
+        extra_cases = []
+        self.full_logger("=" * 8 + " case %d " % case_id + "=" * 8)
+        try:
+            if test_func:
+                test_func = test_func
+                steps = list(case.steps)
+            else:
+                steps = list(case.steps)
+                test_func = steps[-1]
+                steps = steps[:-1]
+
+            for func in steps:
+                # TODO support real case
+                step_index = self.gen_one_step_doc(func,
+                    step_index=step_index, mists=mists)
+
+            old_mists = len(mists)
+            step_index = self.gen_one_step_doc(test_func,
+                    step_index=step_index, check=self.params.extra_check, mists=mists)
+
+            if len(mists) - old_mists > 0:
+                extra_cases = list(self.gen_mist_cases(mists[-1], case, self.env, test_func))
+        except MistDeadEndException:
+            # TODO: maybe need clean up
+            pass
+        else:
+            if need_cleanup:
+                if not case.cleanups:
+                    LOGGER.info("Cannot find clean up way")
+                    LOGGER.info("Current Env: %s", self.env)
+                else:
+                    for func in case.clean_ups:
+                        step_index = self.run_one_step_doc(func, step_index=step_index)
+        # TODO: remove this
+        self.env = Env()
+        return extra_cases
 
 
 class Template(Engine):
@@ -413,6 +494,7 @@ class Demo(Engine):
         else:
             title = str(test_func)
 
+        self.params.doc_logger = self.params.case_logger
         self.full_logger("=" * 8 + " %s " % title + "=" * 8)
         self.full_logger("")
         target_env = Env.gen_require_env(test_func)
@@ -425,57 +507,66 @@ class Demo(Engine):
             case = min(case_matrix)
             case_matrix = [case]
 
+        extra_cases = []
         while case_matrix:
             case = case_matrix.pop()
-            step_index = 1
-            mists = []
-            self.full_logger("=" * 8 + " case %d " % i + "=" * 8)
-            try:
-                for func in case.steps:
-                    step_index = self.gen_one_step_doc(func,
-                        step_index=step_index, mists=mists)
-                step_index = self.gen_one_step_doc(test_func,
-                    step_index=step_index, check=True, mists=mists)
-            except MistDeadEndException:
-                # TODO: maybe need clean up
-                pass
-            else:
-                if need_cleanup:
-                    if not case.cleanups:
-                        LOGGER.info("Cannot find clean up way")
-                        LOGGER.info("Current Env: %s", self.env)
-                    else:
-                        for func in case.clean_ups:
-                            step_index = self.run_one_step(func, step_index=step_index)
+            new_extra_cases = self.run_case(case, i, test_func, need_cleanup)
+            extra_cases.extend(new_extra_cases)
             i += 1
-            self.env = Env()
+
+        LOGGER.info("find another %d extra cases", len(extra_cases))
+        self.params.doc_logger = self.params.mist_logger
+        for extra_case in extra_cases:
+            ret = self.run_case(extra_case, i, need_cleanup=need_cleanup)
+            if ret:
+                raise NotImplementedError
+            i += 1
+
+    @contextlib.contextmanager
+    def preprare_logger(self, doc_file):
+        self.params.logger = LOGGER
+        doc_path = 'doc.file' if not doc_file else doc_file
+        if self.params.mist_rules == 'both':
+            logger = get_file_logger(doc_path, doc_path)
+            self.params.case_logger = logger
+            self.params.mist_logger = logger
+            yield
+            LOGGER.info('Write all case to %s', doc_path)
+        elif self.params.mist_rules == 'split':
+            mist_file = doc_path + '-mist'
+            case_file = doc_path + '-case'
+            self.params.mist_logger = get_file_logger(mist_file, mist_file)
+            self.params.case_logger = get_file_logger(case_file, case_file)
+            yield
+            LOGGER.info('Write standerd case to %s', case_file)
+            LOGGER.info('Write extra case to %s', mist_file)
+        else:
+            raise NotImplementedError
+
+    def report_log_file(self):
+        LOGGER.info('')
 
     def run(self, params, doc_file=None):
         self.params = params
         LOGGER.debug(self.params.pretty_display())
         # TODO
-        self.params.logger = LOGGER
-        doc_path = 'doc.file' if not doc_file else doc_file
-        self.params.doc_logger = get_file_logger(doc_path, doc_path)
-        self.filter_all_func_custom(self._cb_filter_with_param)
-        with time_log('Gen the depend map'):
-            self.gen_depend_map()
+        with self.preprare_logger(doc_file):
+            self.filter_all_func_custom(self._cb_filter_with_param)
+            with time_log('Gen the depend map'):
+                self.gen_depend_map()
 
-        tests = []
-        test_funcs = self._prepare_test_funcs()
+            tests = []
+            test_funcs = self._prepare_test_funcs()
 
-        while test_funcs:
-            # TODO
-            self.env = Env()
+            while test_funcs:
+                # TODO
+                self.env = Env()
 
-            test_case = []
-            order = []
-            test_func = random.choice(test_funcs)
-            test_funcs.remove(test_func)
-            if self.params.test_case:
-                self._gen_test_case_doc(test_func, full_matrix=self.params.full_matrix)
-            else:
-                self._excute_test(test_func)
-
-        LOGGER.info('Write all case to %s', doc_path)
-        LOGGER.info('')
+                test_case = []
+                order = []
+                test_func = random.choice(test_funcs)
+                test_funcs.remove(test_func)
+                if self.params.test_case:
+                    self._gen_test_case_doc(test_func, full_matrix=self.params.full_matrix)
+                else:
+                    self._excute_test(test_func)
