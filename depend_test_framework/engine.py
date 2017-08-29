@@ -240,6 +240,26 @@ class Engine(object):
             if name:
                 return name, mist
 
+    def _handle_mist_func(self, func, doc_func, mists):
+        mist = self._check_mists(mists, self.env, func)
+        LOGGER.debug("Func %s mist %s", doc_func, mist)
+        LOGGER.debug("Env: %s", self.env)
+        if mist:
+            name, mist_func = mist
+            if mist_func.__doc__:
+                self.params.doc_logger.info("Desciption: %s" % mist_func.__doc__)
+            # TODO: here will raise a exception which require the caller handle this
+            try:
+                mist_func(name, doc_func, self.params, self.env)
+            except core.MistClearException:
+                mists.remove(mist_func)
+            # TODO: mist in the mist
+        else:
+            if doc_func.__doc__:
+                self.params.doc_logger.info("Desciption: %s" % doc_func.__doc__)
+
+            return doc_func(self.params, self.env)
+
     def gen_one_step_doc(self, func, step_index=None, check=False, mists=None):
         if getattr(func, '__name__', None):
             doc_func_name = func.__name__
@@ -255,38 +275,19 @@ class Engine(object):
             self.params.doc_logger.info("Not define %s name in doc modules" % doc_func_name)
         doc_func = self.doc_funcs[doc_func_name]
 
-        mist = self._check_mists(mists, self.env, func)
-        LOGGER.debug("Func %s mist %s", doc_func, mist)
-        LOGGER.debug("core.Env: %s", self.env)
-        if mist:
-            name, mist_func = mist
-            if mist_func.__doc__:
-                self.params.doc_logger.info("Desciption: %s" % mist_func.__doc__)
-            # TODO: here will raise a exception which require the caller handle this
-            try:
-                mist_func(name, doc_func, self.params, self.env)
-            except core.MistClearException:
-                mists.remove(mist_func)
-            # TODO: mist in the mist
-            ret = None
-        else:
-            if doc_func.__doc__:
-                self.params.doc_logger.info("Desciption: %s" % doc_func.__doc__)
-
-            ret = doc_func(self.params, self.env)
+        new_mist = self._handle_mist_func(func, doc_func, mists)
 
         LOGGER.debug("Start transfer env, func: %s env: %s", func, self.env)
         new_env = self.env.gen_transfer_env(func)
         if new_env is None:
-            import pdb; pdb.set_trace()
             raise Exception("Fail to gen transfer env")
 
         LOGGER.debug("core.Env transfer to %s", new_env)
         self.env = new_env
 
-        if ret and mists is not None:
-            LOGGER.debug('Add a new mist %s', ret)
-            mists.append(ret)
+        if new_mist and mists is not None:
+            LOGGER.debug('Add a new mist %s', new_mist)
+            mists.append(new_mist)
 
         if not check:
             return step_index
@@ -389,11 +390,10 @@ class Engine(object):
         self.full_logger("=" * 8 + " case %d " % case_id + "=" * 8)
         mist_test_func = False
         try:
+            steps = list(case.steps)
             if test_func:
                 test_func = test_func
-                steps = list(case.steps)
             else:
-                steps = list(case.steps)
                 test_func = steps[-1]
                 steps = steps[:-1]
 

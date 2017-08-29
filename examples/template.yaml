@@ -2,7 +2,6 @@ params:
     test_case: True
     full_matrix: False
     guest_name: 'vm1'
-    extra_check: False
     guest_xml: 'guest.xml'
     mist_rules: 'split'
 
@@ -12,6 +11,7 @@ case:
         restart_libvirtd: True
         curmem: 1048576
         mem_period: 2
+        extra_check: True
       params_matrix:
         memballoon:
           model:
@@ -33,6 +33,7 @@ case:
         memtune:
           hardlimit: 100
         restart_libvirtd: True
+        extra_check: False
       params_matrix:
         hugetlbfs_mount:
           - '/dev/hugetest'
@@ -51,6 +52,7 @@ case:
         pagesize: '2048'
         curmem: 1048576
         restart_libvirtd: True
+        extra_check: False
       params_matrix:
         ivshmem:
           - name: shmem1
@@ -71,6 +73,7 @@ case:
       params:
         memdevice:
           size: 1024
+        extra_check: False
       test_objs:
         - mem_device.verify_memory_device
       modules:
