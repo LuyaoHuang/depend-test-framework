@@ -58,6 +58,7 @@ def check_ivshmem_audit(params, env):
         Check the audit log
         """
         func(params, env)
+        params.doc_logger.info("")
         params.doc_logger.info(STEPS + "# ausearch -m VIRT_RESOURCE -ts recent")
         params.doc_logger.info(RESULT + """
 ...
@@ -69,3 +70,19 @@ type=VIRT_RESOURCE ... msg='virt=kvm resrc=shmem reason=%s vm="%s" uuid=c156ca6f
         raise MistClearException
 
     return Mist({"attach": (start1, end1), "start": (start2, end2)}, check_audit_log)
+
+def hot_plug_ivshmem(params, env):
+    """
+    Hot plug a ivshmem device
+    """
+    params.doc_logger.info("ivshmem.xml:")
+    params.doc_logger.info("""
+    <shmem name='%s'>
+      <model type='%s'/>
+      <size unit='KiB'>%d</size>
+    </shmem>
+        """ % (params.ivshmem.name,
+               params.ivshmem.model,
+               params.ivshmem.size if params.ivshmem.size else 4096))
+    params.doc_logger.info(STEPS + "# virsh attach-device %s ivshmem.xml --live" % params.guest_name)
+    params.doc_logger.info(RESULT + "Device attached successfully")

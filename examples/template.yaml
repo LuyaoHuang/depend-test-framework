@@ -1,6 +1,6 @@
 params:
     test_case: True
-    full_matrix: True
+    full_matrix: False
     guest_name: 'vm1'
     extra_check: False
     guest_xml: 'guest.xml'

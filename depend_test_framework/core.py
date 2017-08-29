@@ -475,7 +475,8 @@ class Env(object):
         return self._path
 
     def __repr__(self):
-        return "<%s path='%s' data='%s'>" % (self.__class__.__name__, self._full_path(), self.data)
+        return "<%s path='%s' data='%s'>" % (self.__class__.__name__,
+                                             self._full_path(), self.data)
 
     def __le__(self, target):
         return self._check_include(target)

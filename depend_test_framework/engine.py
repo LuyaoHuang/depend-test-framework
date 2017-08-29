@@ -172,7 +172,8 @@ class Engine(object):
     def gen_depend_map(self):
         requires = core.Container()
         for func in self.actions|self.hybrids:
-            tmp_requires = core.get_all_depend(func, [core.Provider.SET], depend_cls=core.Provider)
+            tmp_requires = core.get_all_depend(func, [core.Provider.SET],
+                                               depend_cls=core.Provider)
             requires |= core.Container(tmp_requires)
 
         new_requires = core.Container()
@@ -357,32 +358,36 @@ class Engine(object):
                                 case = list(data[0])
                                 case.append(data[1])
                                 case_obj = Case(case, tgt_env=tgt_end_env)
-                                yield case_obj
+                                yield name, case_obj
                         else:
                             for func in funcs:
                                 case_obj = Case([func], tgt_env=tgt_end_env)
-                                yield case_obj
+                                yield name, case_obj
 
     def gen_mist_cases(self, mist, old_case, src_env=None, test_func=None):
         # Here we get a new mist in the test func
         # we need to trigger this mist
         if not src_env:
             src_env = self.env
-        extra_steps = list(self.find_mist_routes(mist, src_env))
-        history_steps = Case(list(old_case.steps), tgt_env=old_case.tgt_env, cleanups=old_case.cleanups)
+        history_steps = Case(list(old_case.steps),
+                             tgt_env=old_case.tgt_env,
+                             cleanups=old_case.cleanups)
         if test_func:
             history_steps.append(test_func)
-        for extra_step in extra_steps:
+
+        for name, extra_step in self.find_mist_routes(mist, src_env):
             new_case = history_steps + extra_step
             LOGGER.debug("create a new case: %s", list(new_case.steps))
-            LOGGER.debug("history steps: %s, extra_step: %s", list(history_steps.steps), list(extra_step.steps))
-            yield new_case
+            LOGGER.debug("history steps: %s, extra_step: %s",
+                         list(history_steps.steps), list(extra_step.steps))
+            yield name, new_case
 
     def run_case(self, case, case_id, test_func=None, need_cleanup=None):
         step_index = 1
         mists = []
-        extra_cases = []
+        extra_cases = {}
         self.full_logger("=" * 8 + " case %d " % case_id + "=" * 8)
+        mist_test_func = False
         try:
             if test_func:
                 test_func = test_func
@@ -402,7 +407,10 @@ class Engine(object):
                     step_index=step_index, check=self.params.extra_check, mists=mists)
 
             if len(mists) - old_mists > 0:
-                extra_cases = list(self.gen_mist_cases(mists[-1], case, self.env, test_func))
+                mist_test_func = True
+                tmp_cases = list(self.gen_mist_cases(mists[-1], case, self.env, test_func))
+                for mist_name, case in tmp_cases:
+                    extra_cases.setdefault(mist_name, []).append(case)
         except core.MistDeadEndException:
             # TODO: maybe need clean up
             pass
@@ -416,7 +424,7 @@ class Engine(object):
                         step_index = self.run_one_step_doc(func, step_index=step_index)
         # TODO: remove this
         self.env = core.Env()
-        return extra_cases
+        return extra_cases, mist_test_func
 
 
 class Template(Engine):
@@ -504,23 +512,29 @@ class Demo(Engine):
 
         if not full_matrix:
             LOGGER.info('Find %d route, and use the shortest one', len(case_matrix))
-            case = min(case_matrix)
-            case_matrix = [case]
+            case_matrix = sorted(case_matrix)
 
-        extra_cases = []
+        # TODO use a class to be a cases container
+        extra_cases = {}
         while case_matrix:
             case = case_matrix.pop()
-            new_extra_cases = self.run_case(case, i, test_func, need_cleanup)
-            extra_cases.extend(new_extra_cases)
+            new_extra_cases, is_mist = self.run_case(case, i, test_func, need_cleanup)
+            if not full_matrix and not is_mist:
+                break
+            for mist_name, cases in new_extra_cases.items():
+                extra_cases.setdefault(mist_name, []).extend(cases)
             i += 1
 
         LOGGER.info("find another %d extra cases", len(extra_cases))
         self.params.doc_logger = self.params.mist_logger
-        for extra_case in extra_cases:
-            ret = self.run_case(extra_case, i, need_cleanup=need_cleanup)
-            if ret:
-                raise NotImplementedError
-            i += 1
+        for name, extra_case in extra_cases.items():
+            for case in sorted(extra_case):
+                ret, is_mist = self.run_case(case, i, need_cleanup=need_cleanup)
+                if is_mist:
+                    raise NotImplementedError
+                i += 1
+                if not full_matrix:
+                    break
 
     @contextlib.contextmanager
     def preprare_logger(self, doc_file):
@@ -543,9 +557,6 @@ class Demo(Engine):
         else:
             raise NotImplementedError
 
-    def report_log_file(self):
-        LOGGER.info('')
-
     def run(self, params, doc_file=None):
         self.params = params
         LOGGER.debug(self.params.pretty_display())
@@ -561,7 +572,6 @@ class Demo(Engine):
             while test_funcs:
                 # TODO
                 self.env = core.Env()
-
                 test_case = []
                 order = []
                 test_func = random.choice(test_funcs)
