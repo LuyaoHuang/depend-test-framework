@@ -37,3 +37,10 @@ def check_ivshmem_audit(params, env):
 @Provider.decorator('$guest_name.active.ivshmem', Provider.SET)
 def hot_plug_ivshmem(params, env):
     pass
+
+@Action.decorator(1)
+@ParamsRequire.decorator(['guest_name', 'ivshmem'])
+@Consumer.decorator('$guest_name.active.ivshmem', Consumer.REQUIRE)
+@Provider.decorator('$guest_name.active.ivshmem', Provider.CLEAR)
+def hot_unplug_ivshmem(params, env):
+    pass
