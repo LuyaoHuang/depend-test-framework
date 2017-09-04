@@ -5,33 +5,30 @@ LOGGER = get_logger(__name__)
 
 def route_permutations(graph, start, target, trace=None):
     routes = []
-    # routes = {}
     nodes_map = graph[start]
     if not trace:
-        trace = set([start])
+        new_trace = set([start])
     else:
-        trace.add(start)
-    # LOGGER.info("Trace: ", trace)
-    # LOGGER.info("Target: ", target)
-    # LOGGER.info("Map: ", nodes_map)
+        new_trace = set(trace)
+        new_trace.add(start)
     for node, opaque in nodes_map.items():
-        if trace and node in trace:
+        if node in new_trace:
             continue
         if node == target:
-            # LOGGER.info("route: ", route)
             routes.append([opaque])
-            # routes.extend(route)
-            # routes[route] = True
+            LOGGER.info("Reach the target")
         else:
-            ret = route_permutations(graph, node, target, trace)
+            LOGGER.info("%s %s", len(new_trace), len(routes))
+            ret = route_permutations(graph, node, target, new_trace)
             if ret:
-                #LOGGER.info(list(itertools.product([opaque], ret)))
-                #routes.extend(itertools.product([opaque], ret))
                 for sub_route in ret:
                     tmp_route = [opaque]
                     tmp_route.extend(sub_route)
                     routes.append(tmp_route)
-                # routes[route] = ret
+    # LOGGER.info("Trace: %s", trace)
+    # LOGGER.info("Map: %s", nodes_map)
+    # LOGGER.info("Start: %s", start)
+    # LOGGER.info("routes: %s", routes)
     return routes
 
 class hashable_list(list):

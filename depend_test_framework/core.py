@@ -405,7 +405,7 @@ class Env(object):
         if not self.hit_requires(con):
             return
         new_env = copy.deepcopy(self)
-        objs = get_all_depend(func, depend_cls=(Provider, Graft))
+        objs = get_all_depend(func, depend_cls=(Provider, Graft, Cut))
         new_env.call_effect_env(objs)
         return new_env
 
@@ -440,7 +440,7 @@ class Env(object):
         ret = '{'
         for key, value in sorted(self.items()):
             if value.need_fmt():
-                ret += ' %s: %s,' % (key, value.struct_table())
+                ret += ' %s|%s: %s,' % (key, bool(value.data), value.struct_table())
         ret += '}'
         return ret
 
@@ -486,10 +486,12 @@ class Env(object):
 
     def _check_include(self, target):
         for key, value in self.items():
-            if value.data and (key not in target.keys() or not target[key].data):
-                return False
-            if value.data is False and key in target.keys() and target[key].data:
-                return False
+            # TODO: any possible to make this looks more correct ?
+            if not value.childs:
+                if value.data and (key not in target.keys() or not target[key].data):
+                   return False
+                if value.data is False and key in target.keys() and target[key].data:
+                   return False
             if not value._check_include(target[key]):
                 return False
         return True

@@ -102,16 +102,21 @@ class Engine(object):
     def find_suit_envs(self, env, dep=None):
         if not self.dep_map:
             raise Exception('Need gen depend map first')
+        tmp_list = []
         for key_env in self.dep_map.keys():
             if env <= key_env:
-                if dep and (len(key_env) - len(env)) > dep:
-                    continue
-                yield key_env
+                tmp_list.append(key_env)
+
+        for i, tgt_env in enumerate(sorted(tmp_list)):
+            if i <= dep:
+                yield tgt_env 
 
     def compute_route_permutations(self, target_env, cleanup=False, src_env=None):
         if not self.dep_map:
             raise Exception('Need gen depend map first')
         base_env = src_env if src_env else self.env
+
+        LOGGER.debug("Compute route from %s to %s", base_env, target_env)
         if cleanup:
             routes = route_permutations(self.dep_map, target_env, base_env)
         else:
@@ -201,6 +206,41 @@ class Engine(object):
                     continue
                 data = dep_map[env_key]
                 data.setdefault(tmp_e, []).append(func)
+
+        for src_node, tgt_nodes in dep_map.items():
+            if not tgt_nodes:
+                LOGGER.info("Empty node %s", src_node)
+        LOGGER.debug(pretty(dep_map))
+        LOGGER.info('Depend map is %d x %d size',
+                    len(dep_map), len(dep_map))
+        self.dep_map = dep_map
+
+    def gen_depend_map2(self):
+        dep_map = {}
+        start_env = core.Env()
+        dep_map.setdefault(start_env, {})
+        nodes = [start_env]
+        test_nodes = []
+        while nodes:
+            node = nodes.pop()
+            print len(nodes), len(dep_map.keys())
+            if node in test_nodes:
+                raise Exception
+            else:
+                test_nodes.append(node)
+            for func in self.actions|self.hybrids:
+                new_node = node.gen_transfer_env(func)
+                if new_node is None:
+                    continue
+                if new_node not in dep_map.keys():
+                    dep_map.setdefault(new_node, {})
+                    nodes.append(new_node)
+                data = dep_map[node]
+                data.setdefault(new_node, set())
+                data[new_node].add(func)
+                # if func not in data[new_node]:
+                #     data[new_node].append(func)
+
         LOGGER.debug(pretty(dep_map))
         LOGGER.info('Depend map is %d x %d size',
                     len(dep_map), len(dep_map))
@@ -280,6 +320,7 @@ class Engine(object):
         LOGGER.debug("Start transfer env, func: %s env: %s", func, self.env)
         new_env = self.env.gen_transfer_env(func)
         if new_env is None:
+            import pdb; pdb.set_trace()
             raise Exception("Fail to gen transfer env")
 
         LOGGER.debug("core.Env transfer to %s", new_env)
@@ -310,7 +351,7 @@ class Engine(object):
             self.full_logger("Desciption: %s" % func.__doc__)
         func(self.params, self.env)
         self.env = self.env.gen_transfer_env(func)
-        LOGGER.debug("core.Env: %s, func: %s", self.env, func)
+        LOGGER.debug("Env: %s, func: %s", self.env, func)
         if not check:
             return
         checkpoints = self.find_checkpoints()
@@ -320,7 +361,7 @@ class Engine(object):
             checkpoint(self.params, self.env)
 
     def find_all_way_to_target(self, target_env, random_cleanup=True):
-        for tgt_env in self.find_suit_envs(target_env, 2):
+        for tgt_env in self.find_suit_envs(target_env, 20):
             cases = self.compute_route_permutations(tgt_env)
             cleanups = self.compute_route_permutations(tgt_env, True)
             if cleanups:
@@ -344,7 +385,7 @@ class Engine(object):
 
         for name, data in mist._areas.items():
             start_env, end_env = data
-            for tgt_start_env in self.find_suit_envs(start_env, 2):
+            for tgt_start_env in self.find_suit_envs(start_env, 20):
                 if tgt_start_env == src_env:
                     cases = None
                 else:
@@ -391,6 +432,7 @@ class Engine(object):
         mist_test_func = False
         try:
             steps = list(case.steps)
+            LOGGER.debug("Case steps: %s", steps)
             if test_func:
                 test_func = test_func
             else:
@@ -418,7 +460,7 @@ class Engine(object):
             if need_cleanup:
                 if not case.cleanups:
                     LOGGER.info("Cannot find clean up way")
-                    LOGGER.info("Current core.Env: %s", self.env)
+                    LOGGER.info("Current Env: %s", self.env)
                 else:
                     for func in case.clean_ups:
                         step_index = self.run_one_step_doc(func, step_index=step_index)
@@ -476,7 +518,7 @@ class Demo(Engine):
         self.full_logger("")
         target_env = core.Env.gen_require_env(test_func)
         i = 1
-        for tgt_env in self.find_suit_envs(target_env, 2):
+        for tgt_env in self.find_suit_envs(target_env, 20):
             cases = self.compute_route_permutations(tgt_env)
             cleanup = self.compute_route_permutations(tgt_env, True)
             for case in cases:
@@ -564,7 +606,7 @@ class Demo(Engine):
         with self.preprare_logger(doc_file):
             self.filter_all_func_custom(self._cb_filter_with_param)
             with time_log('Gen the depend map'):
-                self.gen_depend_map()
+                self.gen_depend_map2()
 
             tests = []
             test_funcs = self._prepare_test_funcs()
