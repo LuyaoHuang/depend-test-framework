@@ -554,7 +554,7 @@ class Demo(Engine):
         # TODO use a class to be a cases container
         extra_cases = {}
         while case_matrix:
-            case = case_matrix.pop()
+            case = case_matrix.pop(0)
             new_extra_cases, is_mist = self.run_case(case, i, test_func, need_cleanup)
             if not full_matrix and not is_mist:
                 break
