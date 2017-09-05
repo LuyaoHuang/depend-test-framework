@@ -3,28 +3,37 @@ from log import get_logger, prefix_logger
 
 LOGGER = get_logger(__name__)
 
-def route_permutations(graph, start, target, trace=None):
+def route_permutations(graph, start, target, trace=None, history=None):
     routes = []
     nodes_map = graph[start]
+
     if not trace:
         new_trace = set([start])
     else:
         new_trace = set(trace)
         new_trace.add(start)
+
+    if history is None:
+        history = {}
+
     for node, opaque in nodes_map.items():
         if node in new_trace:
             continue
-        if node == target:
-            routes.append([opaque])
-            LOGGER.info("Reach the target")
+        if node in history.keys():
+            ret = history[node]
         else:
-            LOGGER.info("%s %s", len(new_trace), len(routes))
-            ret = route_permutations(graph, node, target, new_trace)
-            if ret:
-                for sub_route in ret:
-                    tmp_route = [opaque]
-                    tmp_route.extend(sub_route)
-                    routes.append(tmp_route)
+            if node == target:
+                routes.append([opaque])
+                continue
+            else:
+                ret = route_permutations(graph, node, target, new_trace, history)
+        if ret:
+            for sub_route in ret:
+                tmp_route = [opaque]
+                tmp_route.extend(sub_route)
+                routes.append(tmp_route)
+
+    history[start] = routes
     # LOGGER.info("Trace: %s", trace)
     # LOGGER.info("Map: %s", nodes_map)
     # LOGGER.info("Start: %s", start)

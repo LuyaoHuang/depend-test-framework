@@ -320,7 +320,6 @@ class Engine(object):
         LOGGER.debug("Start transfer env, func: %s env: %s", func, self.env)
         new_env = self.env.gen_transfer_env(func)
         if new_env is None:
-            import pdb; pdb.set_trace()
             raise Exception("Fail to gen transfer env")
 
         LOGGER.debug("core.Env transfer to %s", new_env)
@@ -538,7 +537,7 @@ class Demo(Engine):
                 LOGGER.info("")
                 self.env = core.Env()
 
-    def _gen_test_case_doc(self, test_func, need_cleanup=False, full_matrix=True):
+    def _gen_test_case_doc(self, test_func, need_cleanup=False, full_matrix=True, max_cases=None):
         if getattr(test_func, 'func_name', None):
             title = getattr(test_func, 'func_name')
         else:
@@ -566,6 +565,8 @@ class Demo(Engine):
             for mist_name, cases in new_extra_cases.items():
                 extra_cases.setdefault(mist_name, []).extend(cases)
             i += 1
+            if max_cases and i > max_cases:
+                break
 
         LOGGER.info("find another %d extra cases", len(extra_cases))
         self.params.doc_logger = self.params.mist_logger
@@ -619,6 +620,8 @@ class Demo(Engine):
                 test_func = random.choice(test_funcs)
                 test_funcs.remove(test_func)
                 if self.params.test_case:
-                    self._gen_test_case_doc(test_func, full_matrix=self.params.full_matrix)
+                    self._gen_test_case_doc(test_func,
+                                            full_matrix=self.params.full_matrix,
+                                            max_cases=self.params.max_cases)
                 else:
                     self._excute_test(test_func)
