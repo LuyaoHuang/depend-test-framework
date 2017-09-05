@@ -549,8 +549,7 @@ class Demo(Engine):
         with time_log('Compute case permutations'):
             case_matrix = sorted(list(self.find_all_way_to_target(target_env)))
 
-        if not full_matrix:
-            LOGGER.info('Find %d route, and use the shortest one', len(case_matrix))
+        LOGGER.info('Find %d valid cases', len(case_matrix))
 
         # TODO use a class to be a cases container
         extra_cases = {}
