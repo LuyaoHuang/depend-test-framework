@@ -9,7 +9,7 @@ from collections import OrderedDict
 import copy
 
 import core
-from utils import pretty
+from utils import pretty, ProgressBar
 from log import get_logger, prefix_logger, get_file_logger, make_timing_logger
 from algorithms import route_permutations
 from case import Case
@@ -117,10 +117,11 @@ class Engine(object):
         base_env = src_env if src_env else self.env
 
         LOGGER.debug("Compute route from %s to %s", base_env, target_env)
-        if cleanup:
-            routes = route_permutations(self.dep_map, target_env, base_env)
-        else:
-            routes = route_permutations(self.dep_map, base_env, target_env)
+        with ProgressBar.enter("Compute Cases"):
+            if cleanup:
+                routes = route_permutations(self.dep_map, target_env, base_env)
+            else:
+                routes = route_permutations(self.dep_map, base_env, target_env)
         ret_routes = []
         for route in routes:
             ret_routes.extend(itertools.product(*route))
@@ -223,7 +224,6 @@ class Engine(object):
         test_nodes = []
         while nodes:
             node = nodes.pop()
-            print len(nodes), len(dep_map.keys())
             if node in test_nodes:
                 raise Exception
             else:
@@ -238,8 +238,6 @@ class Engine(object):
                 data = dep_map[node]
                 data.setdefault(new_node, set())
                 data[new_node].add(func)
-                # if func not in data[new_node]:
-                #     data[new_node].append(func)
 
         LOGGER.debug(pretty(dep_map))
         LOGGER.info('Depend map is %d x %d size',
@@ -549,11 +547,10 @@ class Demo(Engine):
         target_env = core.Env.gen_require_env(test_func)
         i = 1
         with time_log('Compute case permutations'):
-            case_matrix = list(self.find_all_way_to_target(target_env))
+            case_matrix = sorted(list(self.find_all_way_to_target(target_env)))
 
         if not full_matrix:
             LOGGER.info('Find %d route, and use the shortest one', len(case_matrix))
-            case_matrix = sorted(case_matrix)
 
         # TODO use a class to be a cases container
         extra_cases = {}

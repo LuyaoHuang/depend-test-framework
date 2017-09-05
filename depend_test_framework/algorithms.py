@@ -1,5 +1,6 @@
 import itertools
 from log import get_logger, prefix_logger
+from utils import ProgressBar
 
 LOGGER = get_logger(__name__)
 
@@ -34,6 +35,7 @@ def route_permutations(graph, start, target, trace=None, history=None):
                 routes.append(tmp_route)
 
     history[start] = routes
+    ProgressBar.next_step(len(history), len(graph))
     # LOGGER.info("Trace: %s", trace)
     # LOGGER.info("Map: %s", nodes_map)
     # LOGGER.info("Start: %s", start)
