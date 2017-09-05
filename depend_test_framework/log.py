@@ -2,7 +2,7 @@ from contextlib import contextmanager
 import logging
 import time
 
-FMT = '%(asctime)s | %(name)-30s | %(levelname)-3s | {0} %(message)s'
+FMT = '%(asctime)s | %(levelname)-3s | {0} %(message)s'
 FILE_FMT = '%(message)s'
 
 

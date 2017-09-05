@@ -23,6 +23,7 @@ class ProgressBar(object):
 
     @classmethod
     def clear(cls):
+        cls.next_step(cls.toolbar_width, cls.toolbar_width)
         sys.stdout.write("\n")
         cls.toolbar_width = 0
         cls.cur_step = 0
