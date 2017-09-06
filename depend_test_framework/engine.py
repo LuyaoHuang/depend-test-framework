@@ -227,7 +227,7 @@ class Engine(object):
     def read_dep_map(self):
         pass
 
-    def gen_depend_map2(self):
+    def gen_depend_map2(self, drop_env=None):
         dep_map = {}
         start_env = core.Env()
         dep_map.setdefault(start_env, {})
@@ -246,6 +246,8 @@ class Engine(object):
             for func in self.actions|self.hybrids:
                 new_node = node.gen_transfer_env(func)
                 if new_node is None:
+                    continue
+                if drop_env and len(new_node) > drop_env:
                     continue
                 if new_node not in dep_map.keys():
                     dep_map.setdefault(new_node, {})
@@ -619,7 +621,7 @@ class Demo(Engine):
         with self.preprare_logger(doc_file):
             self.filter_all_func_custom(self._cb_filter_with_param)
             with time_log('Gen the depend map'):
-                self.gen_depend_map2()
+                self.gen_depend_map2(params.drop_env)
 
             tests = []
             test_funcs = self._prepare_test_funcs()
