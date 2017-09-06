@@ -487,11 +487,11 @@ class Env(object):
     def _check_include(self, target):
         for key, value in self.items():
             # TODO: any possible to make this looks more correct ?
-            if not value.childs:
-                if value.data and (key not in target.keys() or not target[key].data):
-                   return False
-                if value.data is False and key in target.keys() and target[key].data:
-                   return False
+            # if not value.childs:
+            if value.data and (key not in target.keys() or not target[key].data):
+               return False
+            if value.data is False and key in target.keys() and target[key].data:
+               return False
             if not value._check_include(target[key]):
                 return False
         return True

@@ -1,10 +1,9 @@
 import itertools
 from log import get_logger, prefix_logger
-from utils import ProgressBar
 
 LOGGER = get_logger(__name__)
 
-def route_permutations(graph, start, target, trace=None, history=None):
+def route_permutations(graph, start, target, trace=None, history=None, pb=None):
     routes = []
     nodes_map = graph[start]
 
@@ -27,15 +26,17 @@ def route_permutations(graph, start, target, trace=None, history=None):
                 routes.append([opaque])
                 continue
             else:
-                ret = route_permutations(graph, node, target, new_trace, history)
+                ret = route_permutations(graph, node, target, new_trace, history, pb)
         if ret:
             for sub_route in ret:
                 tmp_route = [opaque]
                 tmp_route.extend(sub_route)
                 routes.append(tmp_route)
 
+    del(new_trace)
     history[start] = routes
-    ProgressBar.next_step(len(history), len(graph))
+    if pb:
+        pb.update(len(history) + 1)
     # LOGGER.info("Trace: %s", trace)
     # LOGGER.info("Map: %s", nodes_map)
     # LOGGER.info("Start: %s", start)

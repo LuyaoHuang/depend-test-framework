@@ -9,7 +9,8 @@ from collections import OrderedDict
 import copy
 
 import core
-from utils import pretty, ProgressBar
+from utils import pretty
+from progressbar import ProgressBar, SimpleProgress, Counter, Timer
 from log import get_logger, prefix_logger, get_file_logger, make_timing_logger
 from algorithms import route_permutations
 from case import Case
@@ -116,12 +117,16 @@ class Engine(object):
             raise Exception('Need gen depend map first')
         base_env = src_env if src_env else self.env
 
-        LOGGER.debug("Compute route from %s to %s", base_env, target_env)
-        with ProgressBar.enter("Compute Cases"):
-            if cleanup:
-                routes = route_permutations(self.dep_map, target_env, base_env)
-            else:
-                routes = route_permutations(self.dep_map, base_env, target_env)
+        LOGGER.info("Compute route from %s to %s", base_env, target_env)
+        # TODO encapsulation the ProgressBar in utils
+        widgets = ['Processed: ', Counter(), ' of %d (' % len(self.dep_map), Timer(), ')']
+        pbar = ProgressBar(widgets=widgets, maxval=len(self.dep_map)).start()
+        if cleanup:
+            routes = route_permutations(self.dep_map, target_env, base_env, pb=pbar)
+        else:
+            routes = route_permutations(self.dep_map, base_env, target_env, pb=pbar)
+        pbar.finish()
+
         ret_routes = []
         for route in routes:
             ret_routes.extend(itertools.product(*route))
@@ -222,6 +227,10 @@ class Engine(object):
         dep_map.setdefault(start_env, {})
         nodes = [start_env]
         test_nodes = []
+        widgets = ['Processed: ', Counter(), ' nodes (', Timer(), ')']
+        LOGGER.info("Start gen depend map...")
+        pbar = ProgressBar(widgets=widgets, max_value=100000)
+        pbar.start()
         while nodes:
             node = nodes.pop()
             if node in test_nodes:
@@ -238,6 +247,7 @@ class Engine(object):
                 data = dep_map[node]
                 data.setdefault(new_node, set())
                 data[new_node].add(func)
+            pbar.update(len(dep_map))
 
         LOGGER.debug(pretty(dep_map))
         LOGGER.info('Depend map is %d x %d size',
