@@ -17,6 +17,7 @@ def set_memory_device(params, env):
 
 @CheckPoint.decorator(1)
 @ParamsRequire.decorator(['guest_name', 'memdevice'])
+# @Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
 @Consumer.decorator('$guest_name.active.memdevice', Consumer.REQUIRE)
 def verify_memory_device(parms, env):
     """

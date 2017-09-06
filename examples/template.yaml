@@ -1,9 +1,10 @@
 params:
     test_case: True
-    full_matrix: False
+    full_matrix: True
     guest_name: 'vm1'
     guest_xml: 'guest.xml'
     mist_rules: 'split'
+    max_cases: 30
 
 case:
     - name: test use virsh to set period
@@ -60,6 +61,29 @@ case:
             size: 4096
       test_objs:
         - test_ivshmem.check_ivshmem_audit
+      modules:
+        - vm_basic
+        - mem_test
+        - test_ivshmem
+      doc-modules:
+        - vm_basic_doc
+        - mem_test_doc
+        - test_ivshmem_doc
+
+    - name: ivshmem nagitive
+      params:
+        pagesize: '2048'
+        curmem: 1048576
+        restart_libvirtd: True
+        extra_check: False
+      params_matrix:
+        ivshmem:
+          - name: '../../var/ivshmem'
+            model: ivshmem-plain
+            size: 4096
+      test_objs:
+        - test_ivshmem.check_ivshmem_cmdline
+#        - test_ivshmem.set_ivshmem_device
       modules:
         - vm_basic
         - mem_test

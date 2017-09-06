@@ -19,6 +19,24 @@ def set_ivshmem_device(params, env):
                params.ivshmem.model,
                params.ivshmem.size if params.ivshmem.size else 4096))
 
+    if '/' in params.ivshmem.name:
+        start = [Provider('$guest_name.active', Provider.CLEAR),
+                  Provider('$guest_name.active.ivshmem', Provider.CLEAR)]
+        end = [Provider('$guest_name.active.ivshmem', Provider.SET)]
+
+        def use_invald_ivshmem_name(name, func, params, env):
+            """
+            Guest should fail to start with a invalid ivshmem device
+            """
+            params.doc_logger.info(STEPS + "# virsh start %s", params.guest_name)
+            params.doc_logger.info(RESULT + """
+    error: Failed to start domain %s
+    error: unsupported configuration: shmem name '%s' must not contain '/'
+            """ % (params.guest_name, params.ivshmem.name))
+            raise MistDeadEndException
+
+        return Mist({"start": (start, end)}, use_invald_ivshmem_name)
+
 def check_ivshmem_cmdline(params, env):
     """
     check qemu command line:

@@ -15,12 +15,14 @@ def set_ivshmem_device(params, env):
 
 @CheckPoint.decorator(2)
 @ParamsRequire.decorator(['guest_name', 'ivshmem'])
+@Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
 @Consumer.decorator('$guest_name.active.ivshmem', Consumer.REQUIRE)
 def check_ivshmem_in_guest(params, env):
     pass
 
 @CheckPoint.decorator(1)
 @ParamsRequire.decorator(['guest_name', 'ivshmem'])
+@Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
 @Consumer.decorator('$guest_name.active.ivshmem', Consumer.REQUIRE)
 def check_ivshmem_cmdline(params, env):
     pass
@@ -40,6 +42,7 @@ def hot_plug_ivshmem(params, env):
 
 @Action.decorator(1)
 @ParamsRequire.decorator(['guest_name', 'ivshmem'])
+@Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
 @Consumer.decorator('$guest_name.active.ivshmem', Consumer.REQUIRE)
 @Provider.decorator('$guest_name.active.ivshmem', Provider.CLEAR)
 def hot_unplug_ivshmem(params, env):
