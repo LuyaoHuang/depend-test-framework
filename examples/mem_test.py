@@ -153,7 +153,7 @@ def virsh_set_period_conf(params, env):
 
 @Action.decorator(1)
 @ParamsRequire.decorator(['guest_name', 'mem_period'])
-# @Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
+@Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
 @Provider.decorator('$guest_name.active.mem_period', Provider.SET)
 def virsh_set_period(params, env):
     """

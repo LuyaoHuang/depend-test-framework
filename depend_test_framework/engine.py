@@ -122,9 +122,9 @@ class Engine(object):
         widgets = ['Processed: ', Counter(), ' of %d (' % len(self.dep_map), Timer(), ')']
         pbar = ProgressBar(widgets=widgets, maxval=len(self.dep_map)).start()
         if cleanup:
-            routes = route_permutations(self.dep_map, target_env, base_env, pb=pbar)
+            routes = route_permutations(self.dep_map, target_env, base_env, pb=pbar, allow_dep=13)
         else:
-            routes = route_permutations(self.dep_map, base_env, target_env, pb=pbar)
+            routes = route_permutations(self.dep_map, base_env, target_env, pb=pbar, allow_dep=13)
         pbar.finish()
 
         ret_routes = []
@@ -220,6 +220,12 @@ class Engine(object):
         LOGGER.info('Depend map is %d x %d size',
                     len(dep_map), len(dep_map))
         self.dep_map = dep_map
+
+    def save_dep_map(self):
+        pass
+
+    def read_dep_map(self):
+        pass
 
     def gen_depend_map2(self):
         dep_map = {}

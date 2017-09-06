@@ -3,7 +3,9 @@ from log import get_logger, prefix_logger
 
 LOGGER = get_logger(__name__)
 
-def route_permutations(graph, start, target, trace=None, history=None, pb=None):
+def route_permutations(graph, start, target,
+                       trace=None, history=None, pb=None,
+                       allow_dep=None, dep=None):
     routes = []
     nodes_map = graph[start]
 
@@ -16,6 +18,14 @@ def route_permutations(graph, start, target, trace=None, history=None, pb=None):
     if history is None:
         history = {}
 
+    # TODO better way to limit the table
+    if allow_dep:
+        dep = dep or 0
+        if dep >= allow_dep:
+            return routes
+        else:
+            dep += 1
+
     for node, opaque in nodes_map.items():
         if node in new_trace:
             continue
@@ -26,7 +36,9 @@ def route_permutations(graph, start, target, trace=None, history=None, pb=None):
                 routes.append([opaque])
                 continue
             else:
-                ret = route_permutations(graph, node, target, new_trace, history, pb)
+                ret = route_permutations(graph,
+                    node, target, new_trace, history,
+                    pb, allow_dep, dep)
         if ret:
             for sub_route in ret:
                 tmp_route = [opaque]
