@@ -75,7 +75,7 @@ def verify_nosharepage(params, env):
 
 @Action.decorator(1)
 @ParamsRequire.decorator(['guest_name', 'memtune'])
-# @Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
+@Consumer.decorator('$guest_name.active', Consumer.REQUIRE)
 @Provider.decorator('$guest_name.active.memtune', Provider.SET)
 def virsh_memtune(params, env):
     """
