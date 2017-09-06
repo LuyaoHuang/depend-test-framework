@@ -367,17 +367,17 @@ class Engine(object):
                 self.full_logger("Desciption: %s" % checkpoint.__doc__)
             checkpoint(self.params, self.env)
 
-    def find_all_way_to_target(self, target_env, random_cleanup=True):
+    def find_all_way_to_target(self, target_env, random_cleanup=True, need_cleanup=False):
         for tgt_env in self.find_suit_envs(target_env, 20):
             cases = self.compute_route_permutations(tgt_env)
-            cleanups = self.compute_route_permutations(tgt_env, True)
-            if cleanups:
-                if random_cleanup:
-                    cleanup_steps = random.choice(cleanups)
-                else:
-                    cleanup_steps = min(cleanups)
-            else:
-                cleanup_steps = None
+            cleanup_steps = None
+            if need_cleanup:
+                cleanups = self.compute_route_permutations(tgt_env, True)
+                if cleanups:
+                    if random_cleanup:
+                        cleanup_steps = random.choice(cleanups)
+                    else:
+                        cleanup_steps = min(cleanups)
 
             LOGGER.debug("env: %s case num: %d" % (tgt_env, len(cases)))
             for case in cases:
@@ -557,7 +557,7 @@ class Demo(Engine):
         target_env = core.Env.gen_require_env(test_func)
         i = 1
         with time_log('Compute case permutations'):
-            case_matrix = sorted(list(self.find_all_way_to_target(target_env)))
+            case_matrix = sorted(list(self.find_all_way_to_target(target_env, need_cleanup=need_cleanup)))
 
         LOGGER.info('Find %d valid cases', len(case_matrix))
 
