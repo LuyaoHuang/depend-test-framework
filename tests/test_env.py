@@ -15,7 +15,7 @@ def test_env():
     e.set_data('a.c', 1)
     assert e['a']['c'].data == 1
     assert e.get_data('a.c').data == 1
-    assert e.struct_table() == '{ a: { c: {},},}'
+    assert e.struct_table() == '{ a|False: { c|True: {},},}'
     e.set_data('a.c', False)
     assert e.struct_table() == '{}'
 
@@ -37,5 +37,5 @@ def test_env():
     e4 = Env()
     e4.set_data('d', True)
     e3.set_data('a.c', e4)
-    assert e3.struct_table() == "{ a: { c: { d: {},},},}"
+    assert e3.struct_table() == "{ a|False: { c|False: { d|True: {},},},}"
     assert e3.get_data('a.c.d').__repr__() == "<Env path='a.c.d' data='True'>"
