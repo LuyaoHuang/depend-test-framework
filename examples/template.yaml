@@ -1,6 +1,6 @@
 params:
     test_case: True
-    full_matrix: True
+    full_matrix: False
     guest_name: 'vm1'
     guest_xml: 'guest.xml'
     mist_rules: 'split'
@@ -55,6 +55,7 @@ case:
         curmem: 1048576
         restart_libvirtd: True
         extra_check: False
+        max_cases: 10
       params_matrix:
         ivshmem:
           - name: shmem1
@@ -84,7 +85,6 @@ case:
             size: 4096
       test_objs:
         - test_ivshmem.check_ivshmem_cmdline
-#        - test_ivshmem.set_ivshmem_device
       modules:
         - vm_basic
         - mem_test
