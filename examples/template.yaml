@@ -5,7 +5,7 @@ params:
     guest_xml: 'guest.xml'
     mist_rules: 'split'
     max_cases: 30
-    drop_env: 5
+    drop_env: 4
 
 case:
     - name: test use virsh to set period

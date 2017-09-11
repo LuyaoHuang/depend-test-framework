@@ -108,7 +108,7 @@ class Engine(object):
             if env <= key_env:
                 tmp_list.append(key_env)
 
-        for i, tgt_env in enumerate(sorted(tmp_list)):
+        for i, tgt_env in enumerate(sorted(tmp_list, key=len)):
             if i <= dep:
                 yield tgt_env 
 
@@ -122,9 +122,9 @@ class Engine(object):
         widgets = ['Processed: ', Counter(), ' of %d (' % len(self.dep_map), Timer(), ')']
         pbar = ProgressBar(widgets=widgets, maxval=len(self.dep_map)).start()
         if cleanup:
-            routes = route_permutations(self.dep_map, target_env, base_env, pb=pbar, allow_dep=13)
+            routes = route_permutations(self.dep_map, target_env, base_env, pb=pbar, allow_dep=8)
         else:
-            routes = route_permutations(self.dep_map, base_env, target_env, pb=pbar, allow_dep=13)
+            routes = route_permutations(self.dep_map, base_env, target_env, pb=pbar, allow_dep=8)
         pbar.finish()
 
         ret_routes = []

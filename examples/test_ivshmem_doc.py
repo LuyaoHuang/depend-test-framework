@@ -33,7 +33,7 @@ def set_ivshmem_device(params, env):
             """
             Guest should fail to start with a invalid ivshmem device
             """
-            if nane == 'start':
+            if name == 'start':
                 params.doc_logger.info(STEPS + "# virsh start %s", params.guest_name)
                 params.doc_logger.info(RESULT + """
         error: Failed to start domain %s
