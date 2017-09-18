@@ -267,6 +267,8 @@ class Params(dict):
         value = self.get(key)
         if isinstance(value, dict) and not isinstance(value, self.__class__):
             value = self[key] = self.__class__(value)
+        elif isinstance(value, list):
+            value = [self.__class__(i) for i in value]
         return value
 
     def __setattr__(self, key, value):

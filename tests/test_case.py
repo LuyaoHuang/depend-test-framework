@@ -24,3 +24,7 @@ def test_case():
     assert list(c3.steps) == [1,2,3,10,4]
     assert list(c1.steps) == [1,2,3]
     assert list(c2.steps) == [10, 4]
+
+    assert c3.include(c2)
+    assert c3.include(c1)
+    assert not c2.include(c1)

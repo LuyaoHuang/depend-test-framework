@@ -39,6 +39,10 @@ class Case(object):
             self.tgt_env = new_tgt
         self._steps.append(step)
 
+    def include(self, tgt):
+        self._check_cls(tgt)
+        return set(self._steps) >= set(tgt._steps)
+
     def __add__(self, tgt):
         if not isinstance(tgt, self.__class__):
             raise Exception('Cannot add a %s obj to %s' % (type(tgt), self.__class__))

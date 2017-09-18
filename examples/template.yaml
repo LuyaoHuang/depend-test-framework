@@ -1,11 +1,11 @@
 params:
     test_case: True
-    full_matrix: False
+    full_matrix: True
     guest_name: 'vm1'
     guest_xml: 'guest.xml'
     mist_rules: 'split'
     max_cases: 30
-    drop_env: 4
+    drop_env: 10
 
 case:
     - name: test use virsh to set period
@@ -96,14 +96,48 @@ case:
 
     - name: test mem device
       params:
+        drop_env: 10
         memdevice:
           size: 1024
+          node: 0
         extra_check: False
+        maxmemory:
+          slots: 16
+          size: 2525184
+        numa:
+          - cpus: '0-1'
+            memory: '512000'
       test_objs:
         - mem_device.verify_memory_device
       modules:
         - vm_basic
         - mem_device
+        - numa 
       doc-modules:
         - vm_basic_doc
         - mem_device_doc
+        - numa_doc
+
+    - name: test mem hot-plug
+      params:
+        drop_env: 10
+        memdevice:
+          size: 1024
+          node: 1
+        extra_check: False
+        maxmemory:
+          slots: 16
+          size: 2525184
+        numa:
+          - cpus: '0-1'
+            memory: '512000'
+      test_objs:
+        - mem_device.attach_mem_device
+      modules:
+        - vm_basic
+        - mem_device
+        - numa 
+      doc-modules:
+        - vm_basic_doc
+        - mem_device_doc
+        - numa_doc

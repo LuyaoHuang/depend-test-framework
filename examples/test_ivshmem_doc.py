@@ -100,7 +100,6 @@ type=VIRT_RESOURCE ... msg='virt=kvm resrc=shmem reason=%s vm="%s" uuid=c156ca6f
         """ % (name, params.guest_name,
                params.ivshmem.size if params.ivshmem.size else 4194304,
                params.ivshmem.name,))
-        raise MistClearException
 
     return Mist({"attach": (start1, end1), "start": (start2, end2), "detach": (start3, end3)}, check_audit_log)
 
@@ -135,4 +134,3 @@ def hot_unplug_ivshmem(params, env):
                params.ivshmem.size if params.ivshmem.size else 4096))
     params.doc_logger.info(STEPS + "# virsh detach-device %s ivshmem.xml --live" % params.guest_name)
     params.doc_logger.info(RESULT + "Device detached successfully")
-
