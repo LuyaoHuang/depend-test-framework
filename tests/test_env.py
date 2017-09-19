@@ -33,7 +33,7 @@ def test_env():
 
     e3 = Env()
     e3.set_data('a.c', False)
-    assert e3.get_data('a.c').data == False
+    assert not e3.get_data('a.c').data
     e4 = Env()
     e4.set_data('d', True)
     e3.set_data('a.c', e4)

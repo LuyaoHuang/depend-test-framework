@@ -90,7 +90,7 @@ class Engine(object):
                 cases.extend(self.compute_depend_items(func))
             pos_items.append(cases)
 
-        if not pos_items: 
+        if not pos_items:
             return [func]
         return list(itertools.product(*pos_items))
 
@@ -110,7 +110,7 @@ class Engine(object):
 
         for i, tgt_env in enumerate(sorted(tmp_list, key=len)):
             if i <= dep:
-                yield tgt_env 
+                yield tgt_env
 
     def compute_route_permutations(self, target_env, cleanup=False, src_env=None):
         if not self.dep_map:
@@ -182,7 +182,7 @@ class Engine(object):
 
     def gen_depend_map(self):
         requires = core.Container()
-        for func in self.actions|self.hybrids:
+        for func in self.actions | self.hybrids:
             tmp_requires = core.get_all_depend(func, [core.Provider.SET],
                                                depend_cls=core.Provider)
             requires |= core.Container(tmp_requires)
@@ -205,7 +205,7 @@ class Engine(object):
             tmp_e.call_effect_env(node)
             dep_map[tmp_e] = {}
 
-        for func in self.actions|self.hybrids:
+        for func in self.actions | self.hybrids:
             for env_key in dep_map.keys():
                 tmp_e = env_key.gen_transfer_env(func)
                 if tmp_e is None:
@@ -243,7 +243,7 @@ class Engine(object):
                 raise Exception
             else:
                 test_nodes.append(node)
-            for func in self.actions|self.hybrids:
+            for func in self.actions | self.hybrids:
                 new_node = node.gen_transfer_env(func)
                 if new_node is None:
                     continue
@@ -279,11 +279,11 @@ class Engine(object):
         for func in self.actions:
             tmp_depends = core.get_all_depend(func, req_types, ret_list=False)
             if depend.env_depend in tmp_depends.keys():
-                consumers.add(func)
+                consumers.append(func)
         return consumers
 
     def full_logger(self, msg):
-        #TODO
+        # TODO
         LOGGER.info(msg)
         self.params.doc_logger.info(msg)
 
@@ -323,7 +323,7 @@ class Engine(object):
             doc_func_name = func.__class__.__name__
 
         if step_index is not None:
-            #TODO: move doc_logger definition in basic engine
+            # TODO: move doc_logger definition in basic engine
             self.params.doc_logger.info('%d.\n' % step_index)
             step_index += 1
 
@@ -478,7 +478,7 @@ class Engine(object):
                     LOGGER.info("Current Env: %s", self.env)
                 else:
                     for func in case.clean_ups:
-                        step_index = self.run_one_step_doc(func, step_index=step_index)
+                        step_index = self.gen_one_step_doc(func, step_index=step_index)
         # TODO: remove this
         self.env = core.Env()
         return extra_cases, mist_test_func
@@ -487,14 +487,18 @@ class Engine(object):
 class Template(Engine):
     pass
 
+
 class StaticTemplate(Template):
     pass
+
 
 class MatrixTemplate(Template):
     pass
 
+
 class Fuzz(Engine):
     pass
+
 
 class AI(Engine):
     pass
@@ -518,7 +522,7 @@ class Demo(Engine):
             test_funcs = []
             for module in self.test_modules:
                 for _, func in inspect.getmembers(module, (core.is_Action, core.is_Hybrid)):
-                    test_funcs.add(func)
+                    test_funcs.append(func)
         else:
             test_funcs = self.test_funcs
         return test_funcs

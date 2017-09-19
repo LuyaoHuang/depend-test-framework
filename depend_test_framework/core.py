@@ -19,8 +19,10 @@ def register_entrypoint(fn, entrypoint):
 
     descriptors.add(entrypoint)
 
+
 def get_entrypoint(fn):
     return getattr(fn, '_test_entry', None)
+
 
 class TestObject(object):
     _test_entry = set()
@@ -29,6 +31,7 @@ class TestObject(object):
         Put the real steps in this function
         """
         raise NotImplementedError
+
 
 class Entrypoint(object):
     __params = None
@@ -95,7 +98,7 @@ class Action(Entrypoint):
 class Hybrid(Entrypoint):
     """
     Action + CheckPoint + ...
-    Only work with function have yield 
+    Only work with function have yield
     """
     def __init__(self, test_level, version=None):
         self.test_level = test_level
@@ -210,6 +213,7 @@ class Consumer(Dependency):
     def effect_env(self, env):
         raise Exception
 
+
 class ParamsRequire(Entrypoint):
     def __init__(self, param_depend):
         self.param_depend = Params()
@@ -262,6 +266,7 @@ class Mist(object):
 class Container(set):
     pass
 
+
 class Params(dict):
     def __getattr__(self, key):
         value = self.get(key)
@@ -297,8 +302,10 @@ class Params(dict):
             strings += ("    Param %s is %s\n" % (key, value))
         strings += ("=" * 20 + "\n")
 
+
 class Memory(Container):
     pass
+
 
 class Env(object):
     """
@@ -307,7 +314,7 @@ class Env(object):
     def __init__(self, data=None, parent=None, childs=None, path=''):
         self.data = data
         self.parent = parent
-        self.childs = childs if childs else {} 
+        self.childs = childs if childs else {}
         self._path = path
 
     def __getitem__(self, key):
@@ -437,7 +444,7 @@ class Env(object):
 
     def struct_table(self):
         if not self.keys():
-            #TODO
+            # TODO
             return '{}'
         ret = '{'
         for key, value in sorted(self.items()):
@@ -491,9 +498,9 @@ class Env(object):
             # TODO: any possible to make this looks more correct ?
             # if not value.childs:
             if value.data and (key not in target.keys() or not target[key].data):
-               return False
+                return False
             if value.data is False and key in target.keys() and target[key].data:
-               return False
+                return False
             if not value._check_include(target[key]):
                 return False
         return True
@@ -505,20 +512,26 @@ def is_TestObject(obj):
     except TypeError:
         return
 
+
 def is_Action(obj):
     return _check_func_entrys(obj, Action)
+
 
 def is_CheckPoint(obj):
     return _check_func_entrys(obj, CheckPoint)
 
+
 def is_Hybrid(obj):
     return _check_func_entrys(obj, Hybrid)
+
 
 def is_Graft(obj):
     return _check_func_entrys(obj, Graft)
 
+
 def is_Cut(obj):
     return _check_func_entrys(obj, Cut)
+
 
 def get_all_depend(func, depend_types=None,
                    depend_cls=Dependency, ret_list=True):
@@ -538,6 +551,7 @@ def get_all_depend(func, depend_types=None,
                     depends.setdefault(entry.env_depend, []).append(entry)
     return depends
 
+
 def get_func_params_require(func):
     entrys = get_entrypoint(func)
     if not entrys:
@@ -545,6 +559,7 @@ def get_func_params_require(func):
     for entry in entrys:
         if isinstance(entry, ParamsRequire):
             return entry
+
 
 def _check_func_entrys(obj, internal_type):
     entrys = get_entrypoint(obj)

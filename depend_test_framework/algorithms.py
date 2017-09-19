@@ -3,6 +3,7 @@ from log import get_logger, prefix_logger
 
 LOGGER = get_logger(__name__)
 
+
 def route_permutations(graph, start, target,
                        trace=None, history=None, pb=None,
                        allow_dep=None, dep=None):
@@ -55,16 +56,18 @@ def route_permutations(graph, start, target,
     # LOGGER.info("routes: %s", routes)
     return routes
 
+
 class hashable_list(list):
     def __hash__(self):
         return hash(str(self))
 
+
 def unit_test():
-    G = {'s': {'u':10, 'x':5},
-         'u': {'v':1, 'x':2},
-         'v': {'y':4},
-         'x': {'u':3,'v':9,'y':2},
-         'y': {'s':7,'v':6}}
+    G = {'s': {'u': 10, 'x': 5},
+         'u': {'v': 1, 'x': 2},
+         'v': {'y': 4},
+         'x': {'u': 3, 'v': 9, 'y': 2},
+         'y': {'s': 7, 'v': 6}}
     LOGGER.info(route_permutations(G, 's', 'u'))
     LOGGER.info(route_permutations(G, 'x', 'y'))
 

@@ -21,12 +21,14 @@ def make_timing_logger(logger, precision=3, level=logging.INFO):
 
     return log_time
 
+
 def make_prefix_logger(logger, prefix):
     def log_helper(msg, *args):
         with prefix_logger(logger, prefix):
             logger.info(msg, *args)
 
     return log_helper
+
 
 def get_logger(name, level=logging.INFO, prefix=""):
     """
@@ -54,12 +56,12 @@ def get_logger(name, level=logging.INFO, prefix=""):
 def get_file_logger(name, file_name, level=logging.INFO):
     logger = logging.getLogger(name)
     logger.propagate = False
-    #logger.setLevel(level)
+    # logger.setLevel(level)
     formatter = logging.Formatter(FILE_FMT)
 
     # TODO: file put in config
     file_handler = logging.FileHandler(file_name, mode='w')
-    #file_handler.setLevel(logging.INFO)
+    # file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 

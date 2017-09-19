@@ -57,11 +57,13 @@ def load_modules(modules_list):
     for module in modules_list:
         yield importlib.import_module(module)
 
+
 def load_objs(test_objs_list):
     # TODO: only support 2 layer
     for test_obj in test_objs_list:
         tmp_module = importlib.import_module(test_obj.split('.')[0])
         yield getattr(tmp_module, test_obj.split('.')[1], None)
+
 
 def load_params(params_str, params_conf=None):
     params = Params()
@@ -107,6 +109,7 @@ def full_permutations(params_matrix):
     else:
         raise Exception
 
+
 # This will be a good choise
 def load_template(template_file):
     with open(template_file) as fp:
@@ -128,6 +131,7 @@ def load_template(template_file):
                 yield new_params, modules, doc_modules, copy.deepcopy(test_objs)
         else:
             yield params, modules, doc_modules, copy.deepcopy(test_objs)
+
 
 def main():
     args = parse_cmd()
