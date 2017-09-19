@@ -91,13 +91,16 @@ def check_ivshmem_audit(params, env):
         Check the audit log
         """
         func(params, env)
+
+        active_info = env.get_data('$guest_name.active').data
         params.doc_logger.info("")
         params.doc_logger.info(STEPS + "# ausearch -m VIRT_RESOURCE -ts recent")
         params.doc_logger.info(RESULT + """
 ...
-type=VIRT_RESOURCE ... msg='virt=kvm resrc=shmem reason=%s vm="%s" uuid=c156ca6f-3c16-435b-980d-9745e1d84ad1 size=%d path=/dev/shm/%s exe="/usr/sbin/libvirtd" hostname=? addr=? terminal=? res=success'
+type=VIRT_RESOURCE ... msg='virt=kvm resrc=shmem reason=%s vm="%s" uuid=%s size=%d path=/dev/shm/%s exe="/usr/sbin/libvirtd" hostname=? addr=? terminal=? res=success'
 ...
-        """ % (name, params.guest_name,
+        """ % (name, active_info.get('name'),
+               active_info.get('uuid'),
                params.ivshmem.size if params.ivshmem.size else 4194304,
                params.ivshmem.name,))
 

@@ -51,11 +51,9 @@ case:
 
     - name: test ivshmem 
       params:
-        pagesize: '2048'
-        curmem: 1048576
-        restart_libvirtd: True
         extra_check: False
         max_cases: 10
+        full_matrix: False
       params_matrix:
         ivshmem:
           - name: shmem1
@@ -96,7 +94,6 @@ case:
 
     - name: test mem device
       params:
-        drop_env: 10
         memdevice:
           size: 1024
           node: 0
@@ -120,7 +117,6 @@ case:
 
     - name: test mem hot-plug
       params:
-        drop_env: 10
         memdevice:
           size: 1024
           node: 1
@@ -133,6 +129,30 @@ case:
             memory: '512000'
       test_objs:
         - mem_device.attach_mem_device
+      modules:
+        - vm_basic
+        - mem_device
+        - numa 
+      doc-modules:
+        - vm_basic_doc
+        - mem_device_doc
+        - numa_doc
+
+    - name: test mem device audit
+      params:
+        memdevice:
+          size: 1024
+          node: 1
+        extra_check: False
+        maxmemory:
+          slots: 16
+          size: 2525184
+        numa:
+          - cpus: '0-1'
+            memory: '512000'
+        full_matrix: False
+      test_objs:
+        - mem_device.check_mem_device_audit
       modules:
         - vm_basic
         - mem_device

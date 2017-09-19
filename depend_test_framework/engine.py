@@ -5,12 +5,12 @@ import inspect
 import itertools
 import random
 import contextlib
-from collections import OrderedDict
 import copy
+from collections import OrderedDict
+from progressbar import ProgressBar, SimpleProgress, Counter, Timer
 
 import core
 from utils import pretty
-from progressbar import ProgressBar, SimpleProgress, Counter, Timer
 from log import get_logger, prefix_logger, get_file_logger, make_timing_logger
 from algorithms import route_permutations
 from case import Case
@@ -287,26 +287,26 @@ class Engine(object):
         LOGGER.info(msg)
         self.params.doc_logger.info(msg)
 
-    def _check_mists(self, mists, env, func):
+    def _check_mists(self, mists, env, func, new_env=None):
         # TODO support mutli mist
         if not mists:
             return
         for mist in mists:
-            name = mist.reach(env, func)
+            name = mist.reach(env, func, new_env)
             if name:
                 return name, mist
 
-    def _handle_mist_func(self, func, doc_func, mists):
-        mist = self._check_mists(mists, self.env, func)
+    def _handle_mist_func(self, func, doc_func, mists, new_env=None):
+        mist = self._check_mists(mists, self.env, func, new_env)
         LOGGER.debug("Func %s mist %s", doc_func, mist)
-        LOGGER.debug("Env: %s", self.env)
+        LOGGER.debug("Env: %s", new_env or self.env)
         if mist:
             name, mist_func = mist
             if mist_func.__doc__:
                 self.params.doc_logger.info("Desciption: %s" % mist_func.__doc__)
             # TODO: here will raise a exception which require the caller handle this
             try:
-                mist_func(name, doc_func, self.params, self.env)
+                mist_func(name, doc_func, self.params, new_env or self.env)
             except core.MistClearException:
                 mists.remove(mist_func)
             # TODO: mist in the mist
@@ -314,7 +314,7 @@ class Engine(object):
             if doc_func.__doc__:
                 self.params.doc_logger.info("Desciption: %s" % doc_func.__doc__)
 
-            return doc_func(self.params, self.env)
+            return doc_func(self.params, new_env or self.env)
 
     def gen_one_step_doc(self, func, step_index=None, check=False, mists=None):
         if getattr(func, '__name__', None):
@@ -331,14 +331,15 @@ class Engine(object):
             self.params.doc_logger.info("Not define %s name in doc modules" % doc_func_name)
         doc_func = self.doc_funcs[doc_func_name]
 
-        new_mist = self._handle_mist_func(func, doc_func, mists)
-
         LOGGER.debug("Start transfer env, func: %s env: %s", func, self.env)
         new_env = self.env.gen_transfer_env(func)
         if new_env is None:
             raise Exception("Fail to gen transfer env")
 
-        LOGGER.debug("core.Env transfer to %s", new_env)
+        LOGGER.debug("Env transfer to %s", new_env)
+
+        # XXX: we transfer the env before the test func, and test func can update info in the env
+        new_mist = self._handle_mist_func(func, doc_func, mists, new_env)
         self.env = new_env
 
         if new_mist and mists is not None:

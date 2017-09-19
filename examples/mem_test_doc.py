@@ -285,10 +285,11 @@ def virsh_dommemstat(params, env):
     """
     Check the guest mem usage
     """
+    active_info = env.get_data('$guest_name.active').data
     params.doc_logger.info(STEPS + "# virsh dommemstat %s" % params.guest_name)
     # TODO store the mem_period in data ?
     if not env.get_data('$guest_name.active.mem_period') or not env.get_data('$guest_name.active.mem_period').data:
-        params.doc_logger.info(RESULT + "actual %d\nrss 319908" % params.curmem)
+        params.doc_logger.info(RESULT + "actual %d\nrss 319908" % active_info.get('memory'))
     else:
         params.doc_logger.info(RESULT + """
 actual %d
@@ -299,7 +300,7 @@ minor_fault 2881200
 unused 805660
 available 1017212
 rss 319908
-""" % params.curmem)
+""" % active_info.get('memory'))
 
 
 def check_period_in_xml(params, env):

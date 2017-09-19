@@ -5,6 +5,8 @@ TODO: Need split
 from functools import partial
 import types
 import copy
+import contextlib
+
 from log import get_logger, prefix_logger
 
 LOGGER = get_logger(__name__)
@@ -252,10 +254,12 @@ class Mist(object):
         end_env = env
         self._areas[name] = (start_env, end_env)
 
-    def reach(self, env, func):
-        new_env = env.gen_transfer_env(func)
+    def reach(self, env, func, new_env=None):
+        if not new_env:
+            new_env = env.gen_transfer_env(func)
         for name, data in self._areas.items():
             start_env, end_env = data
+            LOGGER.debug('Start env: %s End env: %s env: %s New env: %s', start_env, end_env, env, new_env)
             if start_env <= env and end_env <= new_env:
                 return name
 
@@ -317,6 +321,9 @@ class Env(object):
         self.childs = childs if childs else {}
         self._path = path
 
+        self._record = False
+        self._history = []
+
     def __getitem__(self, key):
         value = self.childs.get(key)
         if value is None and not key.startswith("_"):
@@ -331,6 +338,13 @@ class Env(object):
         else:
             child_env = self[key]
             child_env.data = value
+
+    @contextlib.contextmanager
+    def record(self):
+        self._history = []
+        self._record = True
+        yield
+        self._record = False
 
     def __str__(self):
         return self.struct_table()
@@ -348,6 +362,7 @@ class Env(object):
         return self._get_data_from_path(path)
 
     def set_data(self, path, value):
+        LOGGER.debug('Env %s set_data, path: %s, value: %s', self, path, value)
         self._set_data_from_path(path, value)
 
     def _get_data_from_path(self, path, use_getitem=False):
@@ -373,8 +388,10 @@ class Env(object):
         if isinstance(value, self.__class__):
             env.childs = value.childs
             env._change_parent(env)
+            LOGGER.debug('Env %s update sub env: %s, value: %s', self, path, value)
             env.data = value.data
         else:
+            LOGGER.debug('Env %s update sub env %s, data %s -> %s', self, path, env.data, value)
             env.data = value
 
     def _change_parent(self, tgt):
