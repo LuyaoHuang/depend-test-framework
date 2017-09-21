@@ -1,7 +1,7 @@
 from utils import enter_depend_test, STEPS, RESULT, SETUP
 enter_depend_test()
 
-from depend_test_framework.core import Action, ParamsRequire, Provider, Consumer, CheckPoint, TestObject, Mist, MistDeadEndException, MistClearException
+from depend_test_framework.core import Provider, Consumer, Mist, MistDeadEndException, MistClearException
 
 
 def set_memory_device(params, env):
@@ -81,7 +81,7 @@ def check_mem_device_audit(params, env):
     params.doc_logger.info(STEPS + "Make sure the auditd is running")
 
     start1 = [Provider('$guest_name.active', Provider.SET),
-             Provider('$guest_name.active.memdevice', Provider.CLEAR)]
+              Provider('$guest_name.active.memdevice', Provider.CLEAR)]
     end1 = [Provider('$guest_name.active.memdevice', Provider.SET)]
 
     start2 = [Provider('$guest_name.active', Provider.CLEAR),
@@ -114,4 +114,19 @@ type=VIRT_RESOURCE ... msg='virt=kvm resrc=mem reason=%s vm="%s" uuid=%s old-mem
                active_info.get('name'),
                active_info.get('uuid'), old_mem, new_mem))
 
-    return Mist({"attach": (start1, end1), "start": (start2, end2), "detach": (start3, end3)}, check_mem_audit_log)
+    return Mist({"attach": (start1, end1),
+                 "start": (start2, end2),
+                 "detach": (start3, end3)},
+                check_mem_audit_log)
+
+
+def check_maxmemory(params, env):
+    """
+    Check maxmemory qemu cmdline
+    """
+    active_info = env.get_data('$guest_name.active').data
+    mem = active_info.get('memory')
+    max_mem = active_info.get('maxmemory')
+    params.doc_logger.info(STEPS + "# ps aux|grep qemu")
+    params.doc_logger.info(RESULT + "-m size=%dk,slots=%d,maxmem=%dk",
+                           mem, max_mem['slots'], max_mem['size'])

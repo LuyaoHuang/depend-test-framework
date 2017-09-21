@@ -53,10 +53,20 @@ def detach_mem_device(params, env):
     """
     pass
 
+
 @CheckPoint.decorator(1)
 @ParamsRequire.decorator(['guest_name', 'memdevice'])
 @Consumer.decorator('$guest_name.config', Consumer.REQUIRE)
 def check_mem_device_audit(params, env):
+    """
+    """
+    pass
+
+
+@CheckPoint.decorator(1)
+@ParamsRequire.decorator(['guest_name'])
+@Consumer.decorator('$guest_name.active.maxmemory', Consumer.REQUIRE)
+def check_maxmemory(params, env):
     """
     """
     pass

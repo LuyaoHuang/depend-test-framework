@@ -161,3 +161,24 @@ case:
         - vm_basic_doc
         - mem_device_doc
         - numa_doc
+
+    - name: test maxmemory
+      params:
+        extra_check: False
+        maxmemory:
+          slots: 16
+          size: 2525184
+        numa:
+          - cpus: '0-1'
+            memory: '512000'
+        full_matrix: False
+      test_objs:
+        - mem_device.check_maxmemory
+      modules:
+        - vm_basic
+        - mem_device
+        - numa 
+      doc-modules:
+        - vm_basic_doc
+        - mem_device_doc
+        - numa_doc
