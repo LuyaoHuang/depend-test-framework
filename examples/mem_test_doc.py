@@ -11,7 +11,7 @@ def host_hugepage_config(params, env):
     if params.hugetlbfs_mount is None:
         params.hugetlbfs_mount = '/dev/hugepages'
 
-    params.doc_logger.info(SETUP + '# cat /etc/libvirt/qemu.conf\n' + \
+    params.doc_logger.info(STEPS + '# cat /etc/libvirt/qemu.conf\n' + \
                                'hugetlbfs_mount = "%s"\n' % params.hugetlbfs_mount)
     params.doc_logger.info("""
     # service libvirtd restart
