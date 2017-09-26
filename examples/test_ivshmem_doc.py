@@ -44,7 +44,7 @@ def set_ivshmem_device(params, env):
                 params.doc_logger.info(RESULT + """
         error: Failed to attach device from ivshmem.xml
         error: unsupported configuration: shmem name '%s' must not contain '/'
-                """ % (params.guest_name, params.ivshmem.name))
+                """ % params.ivshmem.name)
             raise MistDeadEndException
 
         return Mist({"start": (start, end), "attach": (start2, end2)}, use_invald_ivshmem_name)
