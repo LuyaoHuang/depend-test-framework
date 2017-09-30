@@ -1,7 +1,8 @@
 from utils import enter_depend_test, STEPS, RESULT, SETUP
 enter_depend_test()
 
-from depend_test_framework.core import Provider, Consumer, Mist, MistDeadEndException, MistClearException
+from depend_test_framework.test_object import Mist, MistDeadEndException, MistClearException
+from depend_test_framework.dependency import Provider, Consumer
 
 
 def update_libvirt(params, env):

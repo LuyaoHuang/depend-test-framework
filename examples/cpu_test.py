@@ -6,7 +6,10 @@ from utils import enter_depend_test, run_cmd
 enter_depend_test()
 
 import types
-from depend_test_framework.core import Action, CheckPoint, TestObject, ParamsRequire, Consumer
+from depend_test_framework.test_object import Action, CheckPoint, TestObject, Mist, MistDeadEndException, MistClearException
+from depend_test_framework.dependency import Provider, Consumer
+from depend_test_framework.base_class import ParamsRequire
+
 
 PARAM = {'target_vcpu': types.IntType,}
 ENV = {'cpu_status': types.DictType}

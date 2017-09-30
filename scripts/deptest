@@ -16,7 +16,7 @@ if os.path.isdir(os.path.join(BASEDIR, 'depend_test_framework')):
     sys.path.insert(0, BASEDIR)
 
 from depend_test_framework.engine import Demo
-from depend_test_framework.core import Params
+from depend_test_framework.base_class import Params
 import argparse
 import importlib
 

@@ -1,7 +1,8 @@
 from utils import enter_depend_test, STEPS, RESULT, SETUP
 enter_depend_test()
 
-from depend_test_framework.core import Action, ParamsRequire, Provider, Consumer, CheckPoint, TestObject, Mist, MistDeadEndException, MistClearException
+from depend_test_framework.test_object import Mist, MistDeadEndException, MistClearException
+from depend_test_framework.dependency import Provider, Consumer
 
 
 def set_guest_numa(params, env):

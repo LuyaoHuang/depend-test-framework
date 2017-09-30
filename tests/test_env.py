@@ -7,7 +7,7 @@ if os.path.isdir(os.path.join(BASEDIR, 'depend_test_framework')):
     os.environ['PATH'] += ":" + os.path.join(BASEDIR, 'tests')
     sys.path.insert(0, BASEDIR)
 
-from depend_test_framework.core import Env
+from depend_test_framework.env import Env
 
 
 def test_env():

@@ -9,7 +9,10 @@ import copy
 from collections import OrderedDict
 from progressbar import ProgressBar, SimpleProgress, Counter, Timer
 
-import core
+from env import Env
+from base_class import Container, Params, get_func_params_require
+from test_object import is_TestObject, is_Action, is_CheckPoint, is_Hybrid, MistDeadEndException, MistClearException
+from dependency import is_Graft, is_Cut, get_all_depend, Provider, Consumer, Graft, Cut
 from utils import pretty
 from log import get_logger, prefix_logger, get_file_logger, make_timing_logger
 from algorithms import route_permutations
@@ -31,34 +34,34 @@ class Engine(object):
     def __init__(self, modules, doc_modules):
         self.modules = modules
         self.doc_modules = doc_modules
-        self.checkpoints = core.Container()
-        self.actions = core.Container()
-        self.hybrids = core.Container()
-        self.grafts = core.Container()
+        self.checkpoints = Container()
+        self.actions = Container()
+        self.hybrids = Container()
+        self.grafts = Container()
         # TODO: not use dict
         self.doc_funcs = {}
-        self.env = core.Env()
-        self.params = core.Params()
+        self.env = Env()
+        self.params = Params()
         self.dep_map = None
 
         def _handle_func(func, conatiner):
-            if core.is_TestObject(func):
+            if is_TestObject(func):
                 inst_func = func()
                 conatiner.add(inst_func)
             else:
                 conatiner.add(func)
 
         for module in modules:
-            for _, func in inspect.getmembers(module, core.is_Action):
+            for _, func in inspect.getmembers(module, is_Action):
                 # TODO: remove dup code
                 _handle_func(func, self.actions)
-            for _, func in inspect.getmembers(module, core.is_CheckPoint):
+            for _, func in inspect.getmembers(module, is_CheckPoint):
                 _handle_func(func, self.checkpoints)
-            for _, func in inspect.getmembers(module, core.is_Hybrid):
+            for _, func in inspect.getmembers(module, is_Hybrid):
                 _handle_func(func, self.hybrids)
 
-            for _, func in inspect.getmembers(module, core.is_Graft):
-                self.grafts |= core.Container(core.get_all_depend(func, depend_cls=core.Graft))
+            for _, func in inspect.getmembers(module, is_Graft):
+                self.grafts |= Container(get_all_depend(func, depend_cls=Graft))
 
         for func in self.all_funcs:
             for module in self.doc_modules:
@@ -78,7 +81,7 @@ class Engine(object):
         broken and not been used
         """
         pos_items = []
-        requires = core.get_all_depend(func, depend_cls=core.Consumer)
+        requires = get_all_depend(func, depend_cls=Consumer)
         # print "requires of func %s : %s" % (func, requires)
         for require in requires:
             if self.env.hit_require(require):
@@ -137,7 +140,7 @@ class Engine(object):
         return self.hybrids | self.checkpoints | self.actions
 
     def _cb_filter_with_param(self, func):
-        param_req = core.get_func_params_require(func)
+        param_req = get_func_params_require(func)
         if not param_req:
             return False
         if not self.params >= param_req.param_depend:
@@ -151,7 +154,7 @@ class Engine(object):
         self.filter_func_custom(self.hybrids, cb)
 
     def filter_func_custom(self, container, cb):
-        need_remove = core.Container()
+        need_remove = Container()
         for func in container:
             if cb(func):
                 LOGGER.debug('Remove func ' + str(func))
@@ -160,14 +163,14 @@ class Engine(object):
 
     def get_all_depend_provider(self, depend):
         providers = []
-        if depend.type == core.Consumer.REQUIRE:
-            req_types = [core.Provider.SET]
-        elif depend.type == core.Consumer.REQUIRE_N:
-            req_types = [core.Provider.CLEAR]
+        if depend.type == Consumer.REQUIRE:
+            req_types = [Provider.SET]
+        elif depend.type == Consumer.REQUIRE_N:
+            req_types = [Provider.CLEAR]
         else:
             return providers
         for func in self.actions:
-            tmp_depends = core.get_all_depend(func, req_types, ret_list=False)
+            tmp_depends = get_all_depend(func, req_types, ret_list=False)
             if depend.env_depend in tmp_depends.keys():
                 providers.append(func)
         return providers
@@ -175,19 +178,19 @@ class Engine(object):
     def find_checkpoints(self):
         ret = []
         for func in self.checkpoints:
-            requires = core.get_all_depend(func, depend_cls=core.Consumer)
+            requires = get_all_depend(func, depend_cls=Consumer)
             if self.env.hit_requires(requires):
                 ret.append(func)
         return ret
 
     def gen_depend_map(self):
-        requires = core.Container()
+        requires = Container()
         for func in self.actions | self.hybrids:
-            tmp_requires = core.get_all_depend(func, [core.Provider.SET],
-                                               depend_cls=core.Provider)
-            requires |= core.Container(tmp_requires)
+            tmp_requires = get_all_depend(func, [Provider.SET],
+                                               depend_cls=Provider)
+            requires |= Container(tmp_requires)
 
-        new_requires = core.Container()
+        new_requires = Container()
         for graft in self.grafts:
             for require in requires:
                 new_req = graft.gen_trans_depend(require)
@@ -201,7 +204,7 @@ class Engine(object):
             nodes.extend(itertools.combinations(requires, i))
 
         for node in nodes:
-            tmp_e = core.Env()
+            tmp_e = Env()
             tmp_e.call_effect_env(node)
             dep_map[tmp_e] = {}
 
@@ -229,7 +232,7 @@ class Engine(object):
 
     def gen_depend_map2(self, drop_env=None):
         dep_map = {}
-        start_env = core.Env()
+        start_env = Env()
         dep_map.setdefault(start_env, {})
         nodes = [start_env]
         test_nodes = []
@@ -270,14 +273,14 @@ class Engine(object):
         Not been used
         """
         consumers = []
-        if depend.type == core.Provider.SET:
-            req_types = [core.Consumer.REQUIRE]
-        elif depend.type == core.Provider.CLEAR:
-            req_types = [core.Consumer.REQUIRE_N]
+        if depend.type == Provider.SET:
+            req_types = [Consumer.REQUIRE]
+        elif depend.type == Provider.CLEAR:
+            req_types = [Consumer.REQUIRE_N]
         else:
             return consumers
         for func in self.actions:
-            tmp_depends = core.get_all_depend(func, req_types, ret_list=False)
+            tmp_depends = get_all_depend(func, req_types, ret_list=False)
             if depend.env_depend in tmp_depends.keys():
                 consumers.append(func)
         return consumers
@@ -307,7 +310,7 @@ class Engine(object):
             # TODO: here will raise a exception which require the caller handle this
             try:
                 mist_func(name, doc_func, self.params, new_env or self.env)
-            except core.MistClearException:
+            except MistClearException:
                 mists.remove(mist_func)
             # TODO: mist in the mist
         else:
@@ -360,7 +363,7 @@ class Engine(object):
 
     def run_one_step(self, func, check=True, doc=False):
         # TODO: merge this method and find_all_way_to_target to one method
-        if core.is_TestObject(func):
+        if is_TestObject(func):
             func = func()
 
         if func.__doc__:
@@ -469,7 +472,7 @@ class Engine(object):
                 tmp_cases = list(self.gen_mist_cases(mists[-1], case, self.env, test_func))
                 for mist_name, case in tmp_cases:
                     extra_cases.setdefault(mist_name, []).append(case)
-        except core.MistDeadEndException:
+        except MistDeadEndException:
             # TODO: maybe need clean up
             pass
         else:
@@ -481,7 +484,7 @@ class Engine(object):
                     for func in case.clean_ups:
                         step_index = self.gen_one_step_doc(func, step_index=step_index)
         # TODO: remove this
-        self.env = core.Env()
+        self.env = Env()
         return extra_cases, mist_test_func
 
 
@@ -522,7 +525,7 @@ class Demo(Engine):
         if self.test_modules:
             test_funcs = []
             for module in self.test_modules:
-                for _, func in inspect.getmembers(module, (core.is_Action, core.is_Hybrid)):
+                for _, func in inspect.getmembers(module, (is_Action, is_Hybrid)):
                     test_funcs.append(func)
         else:
             test_funcs = self.test_funcs
@@ -536,7 +539,7 @@ class Demo(Engine):
 
         self.full_logger("=" * 8 + " %s " % title + "=" * 8)
         self.full_logger("")
-        target_env = core.Env.gen_require_env(test_func)
+        target_env = Env.gen_require_env(test_func)
         i = 1
         for tgt_env in self.find_suit_envs(target_env, 20):
             cases = self.compute_route_permutations(tgt_env)
@@ -554,9 +557,9 @@ class Demo(Engine):
                     cleanup_case = random.choice(cleanup)
                     for func in cleanup_case:
                         self.run_one_step(func, False)
-                LOGGER.info("Current core.Env: %s", self.env)
+                LOGGER.info("Current Env: %s", self.env)
                 LOGGER.info("")
-                self.env = core.Env()
+                self.env = Env()
 
     def _gen_test_case_doc(self, test_func, need_cleanup=False, full_matrix=True, max_cases=None):
         if getattr(test_func, 'func_name', None):
@@ -567,7 +570,7 @@ class Demo(Engine):
         self.params.doc_logger = self.params.case_logger
         self.full_logger("=" * 8 + " %s " % title + "=" * 8)
         self.full_logger("")
-        target_env = core.Env.gen_require_env(test_func)
+        target_env = Env.gen_require_env(test_func)
         i = 1
         with time_log('Compute case permutations'):
             case_matrix = sorted(list(self.find_all_way_to_target(target_env, need_cleanup=need_cleanup)))
@@ -633,7 +636,7 @@ class Demo(Engine):
 
             while test_funcs:
                 # TODO
-                self.env = core.Env()
+                self.env = Env()
                 test_case = []
                 order = []
                 test_func = random.choice(test_funcs)
