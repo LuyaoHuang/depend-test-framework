@@ -182,3 +182,56 @@ case:
         - vm_basic_doc
         - mem_device_doc
         - numa_doc
+
+    - name: compatibility + maxmemory
+      params:
+        extra_check: False
+        maxmemory:
+          slots: 16
+          size: 2525184
+        numa:
+          - cpus: '0-1'
+            memory: '512000'
+        compatibility:
+          new_ver: "3.7.0-1"
+          old_ver: "3.2.0-1"
+      test_objs:
+        - mem_device.check_maxmemory
+      modules:
+        - vm_basic
+        - mem_device
+        - numa 
+        - compatibility_test
+      doc-modules:
+        - vm_basic_doc
+        - mem_device_doc
+        - numa_doc
+        - compatibility_test_doc
+
+    - name: compatibility + test mem device audit
+      params:
+        memdevice:
+          size: 1024
+          node: 1
+        extra_check: False
+        maxmemory:
+          slots: 16
+          size: 2525184
+        numa:
+          - cpus: '0-1'
+            memory: '512000'
+        compatibility:
+          new_ver: "3.7.0-1"
+          old_ver: "3.2.0-1"
+      test_objs:
+        - mem_device.check_mem_device_audit
+      modules:
+        - vm_basic
+        - mem_device
+        - numa 
+        - compatibility_test
+      doc-modules:
+        - vm_basic_doc
+        - mem_device_doc
+        - numa_doc
+        - compatibility_test_doc

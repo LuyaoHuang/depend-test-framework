@@ -75,7 +75,7 @@ def check_ivshmem_audit(params, env):
     params.doc_logger.info(STEPS + "Make sure the auditd is running")
 
     start1 = [Provider('$guest_name.active', Provider.SET),
-             Provider('$guest_name.active.ivshmem', Provider.CLEAR)]
+              Provider('$guest_name.active.ivshmem', Provider.CLEAR)]
     end1 = [Provider('$guest_name.active.ivshmem', Provider.SET)]
 
     start2 = [Provider('$guest_name.active', Provider.CLEAR),
