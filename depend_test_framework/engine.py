@@ -16,6 +16,7 @@ from dependency import is_Graft, is_Cut, get_all_depend, Provider, Consumer, Gra
 from log import get_logger, get_file_logger, make_timing_logger
 from case import Case
 from case_generator import DependGraphCaseGenerator
+from runner_handlers import MistsHandler
 
 LOGGER = get_logger(__name__)
 time_log = make_timing_logger(LOGGER)
@@ -41,6 +42,7 @@ class Engine(object):
         self.doc_funcs = {}
         self.env = Env()
         self.params = Params()
+        self.extra_handler = None
         # TODO: support more case generator
         self.case_gen = DependGraphCaseGenerator()
 
@@ -52,8 +54,8 @@ class Engine(object):
                 conatiner.add(func)
 
         for module in modules:
+            # TODO: remove dup code
             for _, func in inspect.getmembers(module, is_Action):
-                # TODO: remove dup code
                 _handle_func(func, self.actions)
             for _, func in inspect.getmembers(module, is_CheckPoint):
                 _handle_func(func, self.checkpoints)
@@ -96,12 +98,6 @@ class Engine(object):
         if not pos_items:
             return [func]
         return list(itertools.product(*pos_items))
-
-    def compute_steps_order(self, items):
-        pass
-
-    def compute_full_steps(self, steps):
-        pass
 
     @property
     def all_funcs(self):
@@ -151,9 +147,6 @@ class Engine(object):
                 ret.append(func)
         return ret
 
-    def replace_depend_with_param(self, depend):
-        pass
-
     def get_all_depend_consumer(self, depend):
         """
         Not been used
@@ -176,36 +169,7 @@ class Engine(object):
         LOGGER.info(msg)
         self.params.doc_logger.info(msg)
 
-    def _check_mists(self, mists, env, func, new_env=None):
-        # TODO support mutli mist
-        if not mists:
-            return
-        for mist in mists:
-            name = mist.reach(env, func, new_env)
-            if name:
-                return name, mist
-
-    def _handle_mist_func(self, func, doc_func, mists, new_env=None):
-        mist = self._check_mists(mists, self.env, func, new_env)
-        LOGGER.debug("Func %s mist %s", doc_func, mist)
-        LOGGER.debug("Env: %s", new_env or self.env)
-        if mist:
-            name, mist_func = mist
-            if mist_func.__doc__:
-                self.params.doc_logger.info("Desciption: %s" % mist_func.__doc__)
-            # TODO: here will raise a exception which require the caller handle this
-            try:
-                mist_func(name, doc_func, self.params, new_env or self.env)
-            except MistClearException:
-                mists.remove(mist_func)
-            # TODO: mist in the mist
-        else:
-            if doc_func.__doc__:
-                self.params.doc_logger.info("Desciption: %s" % doc_func.__doc__)
-
-            return doc_func(self.params, new_env or self.env)
-
-    def gen_one_step_doc(self, func, step_index=None, check=False, mists=None):
+    def gen_one_step_doc(self, func, step_index=None, check=False):
         if getattr(func, '__name__', None):
             doc_func_name = func.__name__
         else:
@@ -228,12 +192,12 @@ class Engine(object):
         LOGGER.debug("Env transfer to %s", new_env)
 
         # XXX: we transfer the env before the test func, and test func can update info in the env
-        new_mist = self._handle_mist_func(func, doc_func, mists, new_env)
+        # new_mist = self._handle_mist_func(func, doc_func, mists, new_env)
+        if self.extra_handler:
+            self.extra_handler.handle_func(func, doc_func, new_env)
+        else:
+            doc_func()
         self.env = new_env
-
-        if new_mist and mists is not None:
-            LOGGER.debug('Add a new mist %s', new_mist)
-            mists.append(new_mist)
 
         if not check:
             return step_index
@@ -243,7 +207,7 @@ class Engine(object):
             if checkpoint == func:
                 continue
             step_index = self.gen_one_step_doc(checkpoint,
-                step_index=step_index, mists=mists)
+                step_index=step_index)
 
         return step_index
 
@@ -283,95 +247,50 @@ class Engine(object):
                                 cleanups=cleanup_steps)
                 yield case_obj
 
-    def find_mist_routes(self, mist, src_env=None):
-        routes = []
-        if src_env is None:
-            src_env = self.env
-
-        for name, data in mist._areas.items():
-            start_env, end_env = data
-            for tgt_start_env in self.case_gen.find_suit_envs(start_env, 20):
-                if tgt_start_env == src_env:
-                    cases = None
-                else:
-                    cases = self.case_gen.compute_route_permutations(src_env, tgt_start_env)
-                    if not cases:
-                        continue
-                for tgt_end_env in self.case_gen.dep_graph[tgt_start_env].keys():
-                    if end_env <= tgt_end_env:
-                        funcs = self.case_gen.dep_graph[tgt_start_env][tgt_end_env]
-                        if cases:
-                            for data in itertools.product(cases, funcs):
-                                case = list(data[0])
-                                case.append(data[1])
-                                case_obj = Case(case, tgt_env=tgt_end_env)
-                                yield name, case_obj
-                        else:
-                            for func in funcs:
-                                case_obj = Case([func], tgt_env=tgt_end_env)
-                                yield name, case_obj
-
-    def gen_mist_cases(self, mist, old_case, src_env=None, test_func=None):
-        # Here we get a new mist in the test func
-        # we need to trigger this mist
-        if not src_env:
-            src_env = self.env
-        history_steps = Case(list(old_case.steps),
-                             tgt_env=old_case.tgt_env,
-                             cleanups=old_case.cleanups)
-        if test_func:
-            history_steps.append(test_func)
-
-        for name, extra_step in self.find_mist_routes(mist, src_env):
-            new_case = history_steps + extra_step
-            LOGGER.debug("create a new case: %s", list(new_case.steps))
-            LOGGER.debug("history steps: %s, extra_step: %s",
-                         list(history_steps.steps), list(extra_step.steps))
-            yield name, new_case
-
     def run_case(self, case, case_id, test_func=None, need_cleanup=None):
         step_index = 1
-        mists = []
         extra_cases = {}
-        self.full_logger("=" * 8 + " case %d " % case_id + "=" * 8)
-        mist_test_func = False
-        try:
-            steps = list(case.steps)
-            LOGGER.debug("Case steps: %s", steps)
-            if test_func:
-                test_func = test_func
-            else:
-                test_func = steps[-1]
-                steps = steps[:-1]
-
-            for func in steps:
-                # TODO support real case
-                step_index = self.gen_one_step_doc(func,
-                    step_index=step_index, mists=mists)
-
-            old_mists = len(mists)
-            step_index = self.gen_one_step_doc(test_func,
-                    step_index=step_index, check=self.params.extra_check, mists=mists)
-
-            if len(mists) - old_mists > 0:
-                mist_test_func = True
-                tmp_cases = list(self.gen_mist_cases(mists[-1], case, self.env, test_func))
-                for mist_name, case in tmp_cases:
-                    extra_cases.setdefault(mist_name, []).append(case)
-        except MistDeadEndException:
-            # TODO: maybe need clean up
-            pass
-        else:
-            if need_cleanup:
-                if not case.cleanups:
-                    LOGGER.info("Cannot find clean up way")
-                    LOGGER.info("Current Env: %s", self.env)
+        with self.extra_handler.start_handle():
+            self.full_logger("=" * 8 + " case %d " % case_id + "=" * 8)
+            have_extra_cases = False
+            try:
+                steps = list(case.steps)
+                LOGGER.debug("Case steps: %s", steps)
+                if test_func:
+                    test_func = test_func
                 else:
-                    for func in case.clean_ups:
-                        step_index = self.gen_one_step_doc(func, step_index=step_index)
-        # TODO: remove this
-        self.env = Env()
-        return extra_cases, mist_test_func
+                    test_func = steps[-1]
+                    steps = steps[:-1]
+
+                for func in steps:
+                    # TODO support real case
+                    step_index = self.gen_one_step_doc(func,
+                        step_index=step_index)
+
+                with self.extra_handler.watch_func():
+                    step_index = self.gen_one_step_doc(test_func,
+                            step_index=step_index, check=self.params.extra_check)
+
+                tmp_cases = self.extra_handler.gen_extra_cases(case, self.env, test_func)
+                if tmp_cases:
+                    have_extra_cases = True
+                    for cases_name, case in tmp_cases:
+                        extra_cases.setdefault(cases_name, []).append(case)
+            # TODO: move MistDeadEndException to handler
+            except MistDeadEndException:
+                # TODO: maybe need clean up
+                pass
+            else:
+                if need_cleanup:
+                    if not case.cleanups:
+                        LOGGER.info("Cannot find clean up way")
+                        LOGGER.info("Current Env: %s", self.env)
+                    else:
+                        for func in case.clean_ups:
+                            step_index = self.gen_one_step_doc(func, step_index=step_index)
+            # TODO: remove this
+            self.env = Env()
+        return extra_cases, have_extra_cases
 
 
 class Template(Engine):
@@ -395,6 +314,9 @@ class AI(Engine):
 
 
 class Demo(Engine):
+    """
+    Standerd Engine + Mist handler
+    """
     def __init__(self, basic_modules, test_modules=None,
                  test_funcs=None, doc_modules=None):
         self.test_modules = test_modules
@@ -404,6 +326,7 @@ class Demo(Engine):
         if self.test_modules:
             tmp_modules.extend(test_modules)
         super(Demo, self).__init__(tmp_modules, doc_modules)
+        self.extra_handler = MistsHandler(self)
 
     def _prepare_test_funcs(self):
         if not self.test_modules and not self.test_funcs:
