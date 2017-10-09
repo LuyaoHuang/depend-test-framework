@@ -131,7 +131,7 @@ class Engine(object):
         LOGGER.info(msg)
         self.params.doc_logger.info(msg)
 
-    def gen_one_step_doc(self, func, step_index=None, check=False):
+    def run_one_step(self, func, step_index=None, check=False, only_doc=True):
         if getattr(func, '__name__', None):
             doc_func_name = func.__name__
         else:
@@ -139,11 +139,14 @@ class Engine(object):
 
         if step_index is not None:
             # TODO: move doc_logger definition in basic engine
-            self.params.doc_logger.info('%d.\n' % step_index)
+            if only_doc:
+                self.params.doc_logger.info('%d.\n' % step_index)
+            else:
+                self.full_logger('%d.\n' % step_index)
             step_index += 1
 
         if doc_func_name not in self.doc_funcs.keys():
-            self.params.doc_logger.info("Not define %s name in doc modules" % doc_func_name)
+            raise Exception("Not define %s name in doc modules" % doc_func_name)
         doc_func = self.doc_funcs[doc_func_name]
 
         LOGGER.debug("Start transfer env, func: %s env: %s", func, self.env)
@@ -154,11 +157,13 @@ class Engine(object):
         LOGGER.debug("Env transfer to %s", new_env)
 
         # XXX: we transfer the env before the test func, and test func can update info in the env
-        # new_mist = self._handle_mist_func(func, doc_func, mists, new_env)
         if self.extra_handler:
-            self.extra_handler.handle_func(func, doc_func, new_env)
+            self.extra_handler.handle_func(func, doc_func, new_env, True)
         else:
-            doc_func()
+            if only_doc:
+                doc_func(self.params, new_env)
+            else:
+                func(self.params, new_env)
         self.env = new_env
 
         if not check:
@@ -168,28 +173,10 @@ class Engine(object):
         for i, checkpoint in enumerate(checkpoints):
             if checkpoint == func:
                 continue
-            step_index = self.gen_one_step_doc(checkpoint,
-                step_index=step_index)
+            step_index = self.run_one_step(checkpoint,
+                step_index=step_index, only_doc=only_doc)
 
         return step_index
-
-    def run_one_step(self, func, check=True, doc=False):
-        # TODO: merge this method and find_all_way_to_target to one method
-        if is_TestObject(func):
-            func = func()
-
-        if func.__doc__:
-            self.full_logger("Desciption: %s" % func.__doc__)
-        func(self.params, self.env)
-        self.env = self.env.gen_transfer_env(func)
-        LOGGER.debug("Env: %s, func: %s", self.env, func)
-        if not check:
-            return
-        checkpoints = self.find_checkpoints()
-        for i, checkpoint in enumerate(checkpoints):
-            if checkpoint.__doc__:
-                self.full_logger("Desciption: %s" % checkpoint.__doc__)
-            checkpoint(self.params, self.env)
 
     def find_all_way_to_target(self, target_env, random_cleanup=True, need_cleanup=False):
         for tgt_env in self.case_gen.find_suit_envs(target_env, 20):
@@ -209,50 +196,56 @@ class Engine(object):
                                 cleanups=cleanup_steps)
                 yield case_obj
 
-    def run_case(self, case, case_id, test_func=None, need_cleanup=None):
+    def _run_case_internal(self, case, case_id, test_func, need_cleanup, only_doc):
         step_index = 1
         extra_cases = {}
-        with self.extra_handler.start_handle():
-            self.full_logger("=" * 8 + " case %d " % case_id + "=" * 8)
-            have_extra_cases = False
-            try:
-                steps = list(case.steps)
-                LOGGER.debug("Case steps: %s", steps)
-                if test_func:
-                    test_func = test_func
-                else:
-                    test_func = steps[-1]
-                    steps = steps[:-1]
-
-                for func in steps:
-                    # TODO support real case
-                    step_index = self.gen_one_step_doc(func,
-                        step_index=step_index)
-
-                with self.extra_handler.watch_func():
-                    step_index = self.gen_one_step_doc(test_func,
-                            step_index=step_index, check=self.params.extra_check)
-
-                tmp_cases = self.extra_handler.gen_extra_cases(case, self.env, test_func)
-                if tmp_cases:
-                    have_extra_cases = True
-                    for cases_name, case in tmp_cases:
-                        extra_cases.setdefault(cases_name, []).append(case)
-            # TODO: move MistDeadEndException to handler
-            except MistDeadEndException:
-                # TODO: maybe need clean up
-                pass
+        self.full_logger("=" * 8 + " case %d " % case_id + "=" * 8)
+        have_extra_cases = False
+        try:
+            steps = list(case.steps)
+            LOGGER.debug("Case steps: %s", steps)
+            if test_func:
+                test_func = test_func
             else:
-                if need_cleanup:
-                    if not case.cleanups:
-                        LOGGER.info("Cannot find clean up way")
-                        LOGGER.info("Current Env: %s", self.env)
-                    else:
-                        for func in case.clean_ups:
-                            step_index = self.gen_one_step_doc(func, step_index=step_index)
-            # TODO: remove this
-            self.env = Env()
+                test_func = steps[-1]
+                steps = steps[:-1]
+
+            for func in steps:
+                # TODO support real case
+                step_index = self.run_one_step(func,
+                    step_index=step_index, only_doc=only_doc)
+
+            with self.extra_handler.watch_func():
+                step_index = self.run_one_step(test_func,
+                        step_index=step_index, check=self.params.extra_check, only_doc=only_doc)
+
+            tmp_cases = self.extra_handler.gen_extra_cases(case, self.env, test_func)
+            if tmp_cases:
+                have_extra_cases = True
+                for cases_name, case in tmp_cases:
+                    extra_cases.setdefault(cases_name, []).append(case)
+        # TODO: move MistDeadEndException to handler
+        except MistDeadEndException:
+            # TODO: maybe need clean up
+            pass
+        else:
+            if need_cleanup:
+                if not case.cleanups:
+                    LOGGER.info("Cannot find clean up way")
+                    LOGGER.info("Current Env: %s", self.env)
+                else:
+                    for func in case.clean_ups:
+                        step_index = self.run_one_step(func, step_index=step_index, only_doc=only_doc)
+        # TODO: remove this
+        self.env = Env()
         return extra_cases, have_extra_cases
+
+    def run_case(self, case, case_id, test_func=None, need_cleanup=None, only_doc=True):
+        if self.extra_handler:
+            with self.extra_handler.start_handle():
+                return self._run_case_internal(case, case_id, test_func, need_cleanup, only_doc)
+        else:
+            return self._run_case_internal(case, case_id, test_func, need_cleanup, only_doc)
 
 
 class Template(Engine):
@@ -302,37 +295,8 @@ class Demo(Engine):
             test_funcs = self.test_funcs
         return test_funcs
 
-    def _excute_test(self, test_func):
-        if getattr(test_func, 'func_name', None):
-            title = getattr(test_func, 'func_name')
-        else:
-            title = str(test_func)
-
-        self.full_logger("=" * 8 + " %s " % title + "=" * 8)
-        self.full_logger("")
-        target_env = Env.gen_require_env(test_func)
-        i = 1
-        for tgt_env in self.case_gen.find_suit_envs(target_env, 20):
-            cases = self.case_gen.compute_route_permutations(self.env, tgt_env)
-            cleanup = self.case_gen.compute_route_permutations(self.env, tgt_env, True)
-            for case in cases:
-                # TODO
-                self.full_logger("=" * 8 + " case %d " % i + "=" * 8)
-                for func in case:
-                    self.run_one_step(func)
-                self.run_one_step(test_func)
-                i += 1
-                if not cleanup:
-                    LOGGER.info("Cannot find clean up way")
-                else:
-                    cleanup_case = random.choice(cleanup)
-                    for func in cleanup_case:
-                        self.run_one_step(func, False)
-                LOGGER.info("Current Env: %s", self.env)
-                LOGGER.info("")
-                self.env = Env()
-
-    def _gen_test_case_doc(self, test_func, need_cleanup=False, full_matrix=True, max_cases=None):
+    def _start_test(self, test_func, need_cleanup=False,
+                    full_matrix=True, max_cases=None, only_doc=True):
         if getattr(test_func, 'func_name', None):
             title = getattr(test_func, 'func_name')
         else:
@@ -352,7 +316,7 @@ class Demo(Engine):
         extra_cases = {}
         while case_matrix:
             case = case_matrix.pop(0)
-            new_extra_cases, is_mist = self.run_case(case, i, test_func, need_cleanup)
+            new_extra_cases, is_mist = self.run_case(case, i, test_func, need_cleanup, only_doc=only_doc)
             if not full_matrix and not is_mist:
                 break
             for mist_name, cases in new_extra_cases.items():
@@ -365,7 +329,7 @@ class Demo(Engine):
         self.params.doc_logger = self.params.mist_logger
         for name, extra_case in extra_cases.items():
             for case in sorted(extra_case):
-                ret, is_mist = self.run_case(case, i, need_cleanup=need_cleanup)
+                ret, is_mist = self.run_case(case, i, need_cleanup=need_cleanup, only_doc=only_doc)
                 if is_mist:
                     raise NotImplementedError
                 i += 1
@@ -412,9 +376,7 @@ class Demo(Engine):
                 order = []
                 test_func = random.choice(test_funcs)
                 test_funcs.remove(test_func)
-                if self.params.test_case:
-                    self._gen_test_case_doc(test_func,
-                                            full_matrix=self.params.full_matrix,
-                                            max_cases=self.params.max_cases)
-                else:
-                    self._excute_test(test_func)
+                self._start_test(test_func,
+                                 full_matrix=self.params.full_matrix,
+                                 max_cases=self.params.max_cases,
+                                 only_doc=True if self.params.test_case else False)
