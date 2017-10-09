@@ -78,27 +78,6 @@ class Engine(object):
         """
         raise NotImplementedError
 
-    def compute_depend_items(self, func):
-        """
-        broken and not been used
-        """
-        pos_items = []
-        requires = get_all_depend(func, depend_cls=Consumer)
-        # print "requires of func %s : %s" % (func, requires)
-        for require in requires:
-            if self.env.hit_require(require):
-                continue
-            # print "try to find some func to fit require"
-            funcs = self.get_all_depend_provider(require)
-            cases = []
-            for func in funcs:
-                cases.extend(self.compute_depend_items(func))
-            pos_items.append(cases)
-
-        if not pos_items:
-            return [func]
-        return list(itertools.product(*pos_items))
-
     @property
     def all_funcs(self):
         return self.hybrids | self.checkpoints | self.actions
@@ -146,23 +125,6 @@ class Engine(object):
             if self.env.hit_requires(requires):
                 ret.append(func)
         return ret
-
-    def get_all_depend_consumer(self, depend):
-        """
-        Not been used
-        """
-        consumers = []
-        if depend.type == Provider.SET:
-            req_types = [Consumer.REQUIRE]
-        elif depend.type == Provider.CLEAR:
-            req_types = [Consumer.REQUIRE_N]
-        else:
-            return consumers
-        for func in self.actions:
-            tmp_depends = get_all_depend(func, req_types, ret_list=False)
-            if depend.env_depend in tmp_depends.keys():
-                consumers.append(func)
-        return consumers
 
     def full_logger(self, msg):
         # TODO
