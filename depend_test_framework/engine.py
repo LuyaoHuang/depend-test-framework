@@ -14,7 +14,6 @@ from base_class import Container, Params, get_func_params_require
 from test_object import is_TestObject, is_Action, is_CheckPoint, is_Hybrid, MistDeadEndException, MistClearException
 from dependency import is_Graft, is_Cut, get_all_depend, Provider, Consumer, Graft, Cut
 from log import get_logger, get_file_logger, make_timing_logger
-from case import Case
 from case_generator import DependGraphCaseGenerator
 from runner_handlers import MistsHandler
 
@@ -73,9 +72,9 @@ class Engine(object):
                     break
 
     def run(self):
-        """
-        need implement
-        """
+        raise NotImplementedError
+
+    def prepare(self):
         raise NotImplementedError
 
     @property
@@ -177,24 +176,6 @@ class Engine(object):
                 step_index=step_index, only_doc=only_doc)
 
         return step_index
-
-    def find_all_way_to_target(self, target_env, random_cleanup=True, need_cleanup=False):
-        for tgt_env in self.case_gen.find_suit_envs(target_env, 20):
-            cases = self.case_gen.compute_route_permutations(self.env, tgt_env)
-            cleanup_steps = None
-            if need_cleanup:
-                cleanups = self.case_gen.compute_route_permutations(self.env, tgt_env, True)
-                if cleanups:
-                    if random_cleanup:
-                        cleanup_steps = random.choice(cleanups)
-                    else:
-                        cleanup_steps = min(cleanups)
-
-            LOGGER.debug("env: %s case num: %d" % (tgt_env, len(cases)))
-            for case in cases:
-                case_obj = Case(case, tgt_env=tgt_env,
-                                cleanups=cleanup_steps)
-                yield case_obj
 
     def _run_case_internal(self, case, case_id, test_func, need_cleanup, only_doc):
         step_index = 1
@@ -308,7 +289,7 @@ class Demo(Engine):
         target_env = Env.gen_require_env(test_func)
         i = 1
         with time_log('Compute case permutations'):
-            case_matrix = sorted(list(self.find_all_way_to_target(target_env, need_cleanup=need_cleanup)))
+            case_matrix = sorted(list(self.case_gen.gen_cases(self.env, target_env, need_cleanup=need_cleanup)))
 
         LOGGER.info('Find %d valid cases', len(case_matrix))
 
@@ -357,14 +338,17 @@ class Demo(Engine):
         else:
             raise NotImplementedError
 
+    def prepare(self):
+        self.filter_all_func_custom(self._cb_filter_with_param)
+        with time_log('Gen the depend map'):
+            self.case_gen.gen_depend_map(Env(), self.actions | self.hybrids, self.params.drop_env)
+
     def run(self, params, doc_file=None):
         self.params = params
         LOGGER.debug(self.params.pretty_display())
         # TODO
         with self.preprare_logger(doc_file):
-            self.filter_all_func_custom(self._cb_filter_with_param)
-            with time_log('Gen the depend map'):
-                self.case_gen.gen_depend_map(Env(), self.actions | self.hybrids | self.grafts, params.drop_env)
+            self.prepare()
 
             tests = []
             test_funcs = self._prepare_test_funcs()

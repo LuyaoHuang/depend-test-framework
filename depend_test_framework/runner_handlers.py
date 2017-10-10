@@ -5,7 +5,6 @@ Helpers which help handle the runner result and extend the runner function
 import itertools
 import contextlib
 
-from case import Case
 from test_object import MistClearException
 from log import get_logger
 
@@ -96,14 +95,14 @@ class MistsHandler(object):
         if test_func:
             history_steps.append(test_func)
 
-        for name, extra_step in self.find_mist_routes(mist, src_env):
+        for name, extra_step in self._find_mist_routes(mist, src_env):
             new_case = history_steps + extra_step
             LOGGER.debug("create a new case: %s", list(new_case.steps))
             LOGGER.debug("history steps: %s, extra_step: %s",
                          list(history_steps.steps), list(extra_step.steps))
             yield name, new_case
 
-    def find_mist_routes(self, mist, src_env=None):
+    def _find_mist_routes(self, mist, src_env=None):
         routes = []
         if src_env is None:
             src_env = self._engine.env
@@ -111,26 +110,8 @@ class MistsHandler(object):
         case_gen = self._engine.case_gen
         for name, data in mist._areas.items():
             start_env, end_env = data
-            for tgt_start_env in case_gen.find_suit_envs(start_env, 20):
-                if tgt_start_env == src_env:
-                    cases = None
-                else:
-                    cases = case_gen.compute_route_permutations(src_env, tgt_start_env)
-                    if not cases:
-                        continue
-                for tgt_end_env in case_gen.dep_graph[tgt_start_env].keys():
-                    if end_env <= tgt_end_env:
-                        funcs = case_gen.dep_graph[tgt_start_env][tgt_end_env]
-                        if cases:
-                            for data in itertools.product(cases, funcs):
-                                case = list(data[0])
-                                case.append(data[1])
-                                case_obj = Case(case, tgt_env=tgt_end_env)
-                                yield name, case_obj
-                        else:
-                            for func in funcs:
-                                case_obj = Case([func], tgt_env=tgt_end_env)
-                                yield name, case_obj
+            for case_obj in self._engine.case_gen.gen_cases_special(src_env, start_env, end_env):
+                yield name, case_obj
 
 class MistsContainer(list):
     """

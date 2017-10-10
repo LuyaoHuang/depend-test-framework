@@ -7,6 +7,7 @@ from progressbar import ProgressBar, SimpleProgress, Counter, Timer
 
 from log import get_logger
 from utils import pretty
+from case import Case
 from algorithms import route_permutations
 
 LOGGER = get_logger(__name__)
@@ -17,10 +18,12 @@ class DependGraphCaseGenerator(object):
     Case generator which use a directed graph to describe
     the dependency of the work items
     """
-    def __init__(self):
+    def __init__(self, suit_env_limit=20, allow_dep=8):
         self.dep_graph = None
+        self._allow_dep = allow_dep
+        self._suit_env_limit = suit_env_limit
 
-    def find_suit_envs(self, env, dep=None):
+    def find_suit_envs(self, env):
         if not self.dep_graph:
             raise Exception('Need gen depend graph first')
         tmp_list = []
@@ -29,7 +32,7 @@ class DependGraphCaseGenerator(object):
                 tmp_list.append(key_env)
 
         for i, tgt_env in enumerate(sorted(tmp_list, key=len)):
-            if i <= dep:
+            if i <= self._suit_env_limit:
                 yield tgt_env
 
     def compute_route_permutations(self, src_env, target_env, cleanup=False):
@@ -41,15 +44,59 @@ class DependGraphCaseGenerator(object):
         widgets = ['Processed: ', Counter(), ' of %d (' % len(self.dep_graph), Timer(), ')']
         pbar = ProgressBar(widgets=widgets, maxval=len(self.dep_graph)).start()
         if cleanup:
-            routes = route_permutations(self.dep_graph, target_env, src_env, pb=pbar, allow_dep=8)
+            routes = route_permutations(self.dep_graph, target_env, src_env, pb=pbar, allow_dep=self._allow_dep)
         else:
-            routes = route_permutations(self.dep_graph, src_env, target_env, pb=pbar, allow_dep=8)
+            routes = route_permutations(self.dep_graph, src_env, target_env, pb=pbar, allow_dep=self._allow_dep)
         pbar.finish()
 
         ret_routes = []
         for route in routes:
             ret_routes.extend(itertools.product(*route))
         return ret_routes
+
+    def gen_cases(self, src_env, target_env, random_cleanup=True, need_cleanup=False):
+        for tgt_env in self.find_suit_envs(target_env):
+            cases = self.compute_route_permutations(src_env, tgt_env)
+            cleanup_steps = None
+            if need_cleanup:
+                cleanups = self.compute_route_permutations(src_env, tgt_env, True)
+                if cleanups:
+                    if random_cleanup:
+                        cleanup_steps = random.choice(cleanups)
+                    else:
+                        cleanup_steps = min(cleanups)
+
+            LOGGER.debug("env: %s case num: %d" % (tgt_env, len(cases)))
+            for case in cases:
+                case_obj = Case(case, tgt_env=tgt_env,
+                                cleanups=cleanup_steps)
+                yield case_obj
+
+    def gen_cases_special(self, src_env, start_env, end_env):
+        """
+        Support find cases reach mutli target env
+        """
+        # TODO: this is tied to mist to close
+        for tgt_start_env in self.find_suit_envs(src_env):
+            if tgt_start_env == src_env:
+                cases = None
+            else:
+                cases = self.compute_route_permutations(src_env, tgt_start_env)
+                if not cases:
+                    continue
+            for tgt_end_env in self.dep_graph[tgt_start_env].keys():
+                if end_env <= tgt_end_env:
+                    funcs = self.dep_graph[tgt_start_env][tgt_end_env]
+                    if cases:
+                        for data in itertools.product(cases, funcs):
+                            case = list(data[0])
+                            case.append(data[1])
+                            case_obj = Case(case, tgt_env=tgt_end_env)
+                            yield case_obj
+                    else:
+                        for func in funcs:
+                            case_obj = Case([func], tgt_env=tgt_end_env)
+                            yield case_obj
 
     def gen_depend_map(self, start_node, test_funcs, drop_env=None):
         dep_graph = {}
