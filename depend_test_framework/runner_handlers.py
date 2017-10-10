@@ -6,6 +6,7 @@ import itertools
 import contextlib
 
 from test_object import MistClearException
+from case import Case
 from log import get_logger
 
 LOGGER = get_logger(__name__)
