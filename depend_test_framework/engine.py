@@ -11,11 +11,12 @@ from progressbar import ProgressBar, SimpleProgress, Counter, Timer
 
 from env import Env
 from base_class import Container, Params, get_func_params_require
-from test_object import is_TestObject, is_Action, is_CheckPoint, is_Hybrid, MistDeadEndException, MistClearException
-from dependency import is_Graft, is_Cut, get_all_depend, Provider, Consumer, Graft, Cut
+from test_object import is_TestObject, is_Action, is_CheckPoint, is_Hybrid, MistDeadEndException
+from dependency import is_Graft, is_Cut, get_all_depend, Provider, Consumer, Graft
 from log import get_logger, get_file_logger, make_timing_logger
 from case_generator import DependGraphCaseGenerator
 from runner_handlers import MistsHandler
+from runners import Runner
 
 LOGGER = get_logger(__name__)
 time_log = make_timing_logger(LOGGER)
@@ -29,7 +30,7 @@ def get_name(obj):
         return obj.__class__.__name__
 
 
-class Engine(object):
+class BaseEngine(object):
     def __init__(self, modules, doc_modules):
         self.modules = modules
         self.doc_modules = doc_modules
@@ -229,7 +230,7 @@ class Engine(object):
             return self._run_case_internal(case, case_id, test_func, need_cleanup, only_doc)
 
 
-class Template(Engine):
+class Template(BaseEngine):
     pass
 
 
@@ -241,15 +242,15 @@ class MatrixTemplate(Template):
     pass
 
 
-class Fuzz(Engine):
+class Fuzz(BaseEngine):
     pass
 
 
-class AI(Engine):
+class AI(BaseEngine):
     pass
 
 
-class Demo(Engine):
+class Demo(BaseEngine):
     """
     Standerd Engine + Mist handler
     """
@@ -293,11 +294,13 @@ class Demo(Engine):
 
         LOGGER.info('Find %d valid cases', len(case_matrix))
 
+        runner = Runner(self.params, self.env, self.checkpoints, self.doc_funcs, self.params.logger, self.params.doc_logger, self.extra_handler)
         # TODO use a class to be a cases container
         extra_cases = {}
         while case_matrix:
             case = case_matrix.pop(0)
-            new_extra_cases, is_mist = self.run_case(case, i, test_func, need_cleanup, only_doc=only_doc)
+            #new_extra_cases, is_mist = self.run_case(case, i, test_func, need_cleanup, only_doc=only_doc)
+            new_extra_cases, is_mist = runner.run_case(case, i, test_func, need_cleanup, only_doc=only_doc)
             if not full_matrix and not is_mist:
                 break
             for mist_name, cases in new_extra_cases.items():
@@ -308,9 +311,11 @@ class Demo(Engine):
 
         LOGGER.info("find another %d extra cases", len(extra_cases))
         self.params.doc_logger = self.params.mist_logger
+        runner = Runner(self.params, self.env, self.checkpoints, self.doc_funcs, self.params.logger, self.params.doc_logger, self.extra_handler)
         for name, extra_case in extra_cases.items():
             for case in sorted(extra_case):
-                ret, is_mist = self.run_case(case, i, need_cleanup=need_cleanup, only_doc=only_doc)
+                #ret, is_mist = self.run_case(case, i, need_cleanup=need_cleanup, only_doc=only_doc)
+                ret, is_mist = runner.run_case(case, i, need_cleanup=need_cleanup, only_doc=only_doc)
                 if is_mist:
                     raise NotImplementedError
                 i += 1
