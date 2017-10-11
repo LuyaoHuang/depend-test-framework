@@ -11,25 +11,28 @@ LOGGER = get_logger(__name__)
 
 
 class Runner(object):
-    def __init__(self, params, env, checkpoints, doc_funcs,
-                 test_logger, doc_logger, extra_handler=None):
-        self._params = params
-        self._env = env
+    def __init__(self, params, checkpoints, doc_funcs,
+                 test_logger, doc_logger, env=None):
+        self.params = params
+        self.env = env or Env()
         self._checkpoints = checkpoints
-        self._test_logger = test_logger
-        self._doc_logger = doc_logger
-        self._extra_handler = extra_handler
+        self.test_logger = test_logger
+        self.doc_logger = doc_logger
+        self._extra_handler = None
         self._doc_funcs = doc_funcs
 
     def full_logger(self, msg):
-        self._test_logger.info(msg)
-        self._doc_logger.info(msg)
+        self.test_logger.info(msg)
+        self.doc_logger.info(msg)
+
+    def set_extra_handler(self, extra_handler):
+        self._extra_handler = extra_handler
 
     def find_checkpoints(self):
         ret = []
         for func in self._checkpoints:
             requires = get_all_depend(func, depend_cls=Consumer)
-            if self._env.hit_requires(requires):
+            if self.env.hit_requires(requires):
                 ret.append(func)
         return ret
 
@@ -47,14 +50,14 @@ class Runner(object):
         if step_index is not None:
             # TODO: move doc_logger definition in basic engine
             if only_doc:
-                self._doc_logger.info('%d.\n' % step_index)
+                self.doc_logger.info('%d.\n' % step_index)
             else:
                 self.full_logger('%d.\n' % step_index)
             step_index += 1
 
         doc_func = self._get_doc_func(func)
-        LOGGER.debug("Start transfer env, func: %s env: %s", func, self._env)
-        new_env = self._env.gen_transfer_env(func)
+        LOGGER.debug("Start transfer env, func: %s env: %s", func, self.env)
+        new_env = self.env.gen_transfer_env(func)
         if new_env is None:
             raise Exception("Fail to gen transfer env")
 
@@ -65,10 +68,10 @@ class Runner(object):
             self._extra_handler.handle_func(func, doc_func, new_env, True)
         else:
             if only_doc:
-                doc_func(self._params, new_env)
+                doc_func(self.params, new_env)
             else:
-                func(self._params, new_env)
-        self._env = new_env
+                func(self.params, new_env)
+        self.env = new_env
 
         if not check:
             return step_index
@@ -104,10 +107,10 @@ class Runner(object):
             with self._extra_handler.watch_func():
                 step_index = self.run_one_step(test_func,
                         step_index=step_index,
-                        check=self._params.extra_check,
+                        check=self.params.extra_check,
                         only_doc=only_doc)
 
-            tmp_cases = self._extra_handler.gen_extra_cases(case, self._env, test_func)
+            tmp_cases = self._extra_handler.gen_extra_cases(case, self.env, test_func)
             if tmp_cases:
                 have_extra_cases = True
                 for cases_name, case in tmp_cases:
@@ -120,12 +123,12 @@ class Runner(object):
             if need_cleanup:
                 if not case.cleanups:
                     LOGGER.info("Cannot find clean up way")
-                    LOGGER.info("Current Env: %s", self._env)
+                    LOGGER.info("Current Env: %s", self.env)
                 else:
                     for func in case.clean_ups:
                         step_index = self.run_one_step(func, step_index=step_index, only_doc=only_doc)
         # TODO: remove this
-        self._env = Env()
+        self.env = Env()
         return extra_cases, have_extra_cases
 
     def run_case(self, case, case_id, test_func=None, need_cleanup=None, only_doc=True):

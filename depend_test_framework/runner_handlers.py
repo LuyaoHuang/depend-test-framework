@@ -13,18 +13,19 @@ LOGGER = get_logger(__name__)
 
 
 class MistsHandler(object):
-    def __init__(self, engine):
-        self._engine = engine
+    def __init__(self, runner, case_gen):
+        self._runner = runner
         self._mists_c = None
         self._last_mist = None
+        self._case_gen = case_gen
 
     def _test_logger(self, *args, **kwargs):
         use_doc = kwargs.get('use_doc', False)
         # FIXME: not only info
         if use_doc:
-            self._engine.params.doc_logger.info(*args)
+            self._runner.doc_logger.info(*args)
         else:
-            self._engine.params.logger.info(*args)
+            self._runner.test_logger.info(*args)
 
     @contextlib.contextmanager
     def start_handle(self):
@@ -58,11 +59,11 @@ class MistsHandler(object):
     def handle_func(self, func, doc_func,
                     new_env=None, only_doc=True):
         mists = self._mists_c
-        tgt_env = new_env or self._engine.env
-        params = self._engine.params
+        tgt_env = new_env or self._runner.env
+        params = self._runner.params
         test_func = doc_func if only_doc else func
 
-        mist = self._check_mists(mists, self._engine.env, func, new_env)
+        mist = self._check_mists(mists, self._runner.env, func, new_env)
         LOGGER.debug("Func %s mist %s", test_func, mist)
         LOGGER.debug("Env: %s", tgt_env)
         if mist:
@@ -89,7 +90,7 @@ class MistsHandler(object):
         # Here we get a new mist in the test func
         # we need to trigger this mist
         if not src_env:
-            src_env = self._engine.env
+            src_env = self._runner.env
         history_steps = Case(list(old_case.steps),
                              tgt_env=old_case.tgt_env,
                              cleanups=old_case.cleanups)
@@ -106,12 +107,11 @@ class MistsHandler(object):
     def _find_mist_routes(self, mist, src_env=None):
         routes = []
         if src_env is None:
-            src_env = self._engine.env
+            src_env = self._runner.env
 
-        case_gen = self._engine.case_gen
         for name, data in mist._areas.items():
             start_env, end_env = data
-            for case_obj in self._engine.case_gen.gen_cases_special(src_env, start_env, end_env):
+            for case_obj in self._case_gen.gen_cases_special(src_env, start_env, end_env):
                 yield name, case_obj
 
 class MistsContainer(list):

@@ -6,6 +6,7 @@ import itertools
 from progressbar import ProgressBar, SimpleProgress, Counter, Timer
 
 from log import get_logger
+from env import Env
 from utils import pretty
 from case import Case
 from algorithms import route_permutations
@@ -54,7 +55,10 @@ class DependGraphCaseGenerator(object):
             ret_routes.extend(itertools.product(*route))
         return ret_routes
 
-    def gen_cases(self, src_env, target_env, random_cleanup=True, need_cleanup=False):
+    def gen_cases(self, test_func, random_cleanup=True, need_cleanup=False, src_env=None):
+        if not src_env:
+            src_env = Env()
+        target_env = Env.gen_require_env(test_func)
         for tgt_env in self.find_suit_envs(target_env):
             cases = self.compute_route_permutations(src_env, tgt_env)
             cleanup_steps = None
@@ -77,7 +81,7 @@ class DependGraphCaseGenerator(object):
         Support find cases reach mutli target env
         """
         # TODO: this is tied to mist to close
-        for tgt_start_env in self.find_suit_envs(src_env):
+        for tgt_start_env in self.find_suit_envs(start_env):
             if tgt_start_env == src_env:
                 cases = None
             else:
@@ -98,8 +102,10 @@ class DependGraphCaseGenerator(object):
                             case_obj = Case([func], tgt_env=tgt_end_env)
                             yield case_obj
 
-    def gen_depend_map(self, start_node, test_funcs, drop_env=None):
+    def gen_depend_map(self, test_funcs, drop_env=None, start_node=None):
         dep_graph = {}
+        if not start_node:
+            start_node = Env()
         dep_graph.setdefault(start_node, {})
         nodes = [start_node]
         widgets = ['Processed: ', Counter(), ' nodes (', Timer(), ')']

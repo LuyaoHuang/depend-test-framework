@@ -2,16 +2,12 @@
 Test Engine
 """
 import inspect
-import itertools
 import random
 import contextlib
-import copy
-from collections import OrderedDict
 from progressbar import ProgressBar, SimpleProgress, Counter, Timer
 
-from env import Env
 from base_class import Container, Params, get_func_params_require
-from test_object import is_TestObject, is_Action, is_CheckPoint, is_Hybrid, MistDeadEndException
+from test_object import is_TestObject, is_Action, is_CheckPoint, is_Hybrid
 from dependency import is_Graft, is_Cut, get_all_depend, Provider, Consumer, Graft
 from log import get_logger, get_file_logger, make_timing_logger
 from case_generator import DependGraphCaseGenerator
@@ -40,9 +36,7 @@ class BaseEngine(object):
         self.grafts = Container()
         # TODO: not use dict
         self.doc_funcs = {}
-        self.env = Env()
         self.params = Params()
-        self.extra_handler = None
         # TODO: support more case generator
         self.case_gen = DependGraphCaseGenerator()
 
@@ -104,130 +98,10 @@ class BaseEngine(object):
                 need_remove.add(func)
         container -= need_remove
 
-    def get_all_depend_provider(self, depend):
-        providers = []
-        if depend.type == Consumer.REQUIRE:
-            req_types = [Provider.SET]
-        elif depend.type == Consumer.REQUIRE_N:
-            req_types = [Provider.CLEAR]
-        else:
-            return providers
-        for func in self.actions:
-            tmp_depends = get_all_depend(func, req_types, ret_list=False)
-            if depend.env_depend in tmp_depends.keys():
-                providers.append(func)
-        return providers
-
-    def find_checkpoints(self):
-        ret = []
-        for func in self.checkpoints:
-            requires = get_all_depend(func, depend_cls=Consumer)
-            if self.env.hit_requires(requires):
-                ret.append(func)
-        return ret
-
     def full_logger(self, msg):
         # TODO
         LOGGER.info(msg)
         self.params.doc_logger.info(msg)
-
-    def run_one_step(self, func, step_index=None, check=False, only_doc=True):
-        if getattr(func, '__name__', None):
-            doc_func_name = func.__name__
-        else:
-            doc_func_name = func.__class__.__name__
-
-        if step_index is not None:
-            # TODO: move doc_logger definition in basic engine
-            if only_doc:
-                self.params.doc_logger.info('%d.\n' % step_index)
-            else:
-                self.full_logger('%d.\n' % step_index)
-            step_index += 1
-
-        if doc_func_name not in self.doc_funcs.keys():
-            raise Exception("Not define %s name in doc modules" % doc_func_name)
-        doc_func = self.doc_funcs[doc_func_name]
-
-        LOGGER.debug("Start transfer env, func: %s env: %s", func, self.env)
-        new_env = self.env.gen_transfer_env(func)
-        if new_env is None:
-            raise Exception("Fail to gen transfer env")
-
-        LOGGER.debug("Env transfer to %s", new_env)
-
-        # XXX: we transfer the env before the test func, and test func can update info in the env
-        if self.extra_handler:
-            self.extra_handler.handle_func(func, doc_func, new_env, True)
-        else:
-            if only_doc:
-                doc_func(self.params, new_env)
-            else:
-                func(self.params, new_env)
-        self.env = new_env
-
-        if not check:
-            return step_index
-
-        checkpoints = self.find_checkpoints()
-        for i, checkpoint in enumerate(checkpoints):
-            if checkpoint == func:
-                continue
-            step_index = self.run_one_step(checkpoint,
-                step_index=step_index, only_doc=only_doc)
-
-        return step_index
-
-    def _run_case_internal(self, case, case_id, test_func, need_cleanup, only_doc):
-        step_index = 1
-        extra_cases = {}
-        self.full_logger("=" * 8 + " case %d " % case_id + "=" * 8)
-        have_extra_cases = False
-        try:
-            steps = list(case.steps)
-            LOGGER.debug("Case steps: %s", steps)
-            if test_func:
-                test_func = test_func
-            else:
-                test_func = steps[-1]
-                steps = steps[:-1]
-
-            for func in steps:
-                # TODO support real case
-                step_index = self.run_one_step(func,
-                    step_index=step_index, only_doc=only_doc)
-
-            with self.extra_handler.watch_func():
-                step_index = self.run_one_step(test_func,
-                        step_index=step_index, check=self.params.extra_check, only_doc=only_doc)
-
-            tmp_cases = self.extra_handler.gen_extra_cases(case, self.env, test_func)
-            if tmp_cases:
-                have_extra_cases = True
-                for cases_name, case in tmp_cases:
-                    extra_cases.setdefault(cases_name, []).append(case)
-        # TODO: move MistDeadEndException to handler
-        except MistDeadEndException:
-            # TODO: maybe need clean up
-            pass
-        else:
-            if need_cleanup:
-                if not case.cleanups:
-                    LOGGER.info("Cannot find clean up way")
-                    LOGGER.info("Current Env: %s", self.env)
-                else:
-                    for func in case.clean_ups:
-                        step_index = self.run_one_step(func, step_index=step_index, only_doc=only_doc)
-        # TODO: remove this
-        self.env = Env()
-        return extra_cases, have_extra_cases
-
-    def run_case(self, case, case_id, test_func=None, need_cleanup=None, only_doc=True):
-        if self.extra_handler:
-            with self.extra_handler.start_handle():
-                return self._run_case_internal(case, case_id, test_func, need_cleanup, only_doc)
-        else:
-            return self._run_case_internal(case, case_id, test_func, need_cleanup, only_doc)
 
 
 class Template(BaseEngine):
@@ -263,7 +137,6 @@ class Demo(BaseEngine):
         if self.test_modules:
             tmp_modules.extend(test_modules)
         super(Demo, self).__init__(tmp_modules, doc_modules)
-        self.extra_handler = MistsHandler(self)
 
     def _prepare_test_funcs(self):
         if not self.test_modules and not self.test_funcs:
@@ -287,19 +160,19 @@ class Demo(BaseEngine):
         self.params.doc_logger = self.params.case_logger
         self.full_logger("=" * 8 + " %s " % title + "=" * 8)
         self.full_logger("")
-        target_env = Env.gen_require_env(test_func)
         i = 1
         with time_log('Compute case permutations'):
-            case_matrix = sorted(list(self.case_gen.gen_cases(self.env, target_env, need_cleanup=need_cleanup)))
+            case_matrix = sorted(list(self.case_gen.gen_cases(test_func, need_cleanup=need_cleanup)))
 
         LOGGER.info('Find %d valid cases', len(case_matrix))
 
-        runner = Runner(self.params, self.env, self.checkpoints, self.doc_funcs, self.params.logger, self.params.doc_logger, self.extra_handler)
+        runner = Runner(self.params, self.checkpoints, self.doc_funcs, self.params.logger, self.params.doc_logger)
+        extra_handler = MistsHandler(runner, self.case_gen)
+        runner.set_extra_handler(extra_handler)
         # TODO use a class to be a cases container
         extra_cases = {}
         while case_matrix:
             case = case_matrix.pop(0)
-            #new_extra_cases, is_mist = self.run_case(case, i, test_func, need_cleanup, only_doc=only_doc)
             new_extra_cases, is_mist = runner.run_case(case, i, test_func, need_cleanup, only_doc=only_doc)
             if not full_matrix and not is_mist:
                 break
@@ -311,10 +184,9 @@ class Demo(BaseEngine):
 
         LOGGER.info("find another %d extra cases", len(extra_cases))
         self.params.doc_logger = self.params.mist_logger
-        runner = Runner(self.params, self.env, self.checkpoints, self.doc_funcs, self.params.logger, self.params.doc_logger, self.extra_handler)
+        runner.doc_logger = self.params.mist_logger
         for name, extra_case in extra_cases.items():
             for case in sorted(extra_case):
-                #ret, is_mist = self.run_case(case, i, need_cleanup=need_cleanup, only_doc=only_doc)
                 ret, is_mist = runner.run_case(case, i, need_cleanup=need_cleanup, only_doc=only_doc)
                 if is_mist:
                     raise NotImplementedError
@@ -346,7 +218,7 @@ class Demo(BaseEngine):
     def prepare(self):
         self.filter_all_func_custom(self._cb_filter_with_param)
         with time_log('Gen the depend map'):
-            self.case_gen.gen_depend_map(Env(), self.actions | self.hybrids, self.params.drop_env)
+            self.case_gen.gen_depend_map(self.actions | self.hybrids, self.params.drop_env)
 
     def run(self, params, doc_file=None):
         self.params = params
@@ -360,7 +232,6 @@ class Demo(BaseEngine):
 
             while test_funcs:
                 # TODO
-                self.env = Env()
                 test_case = []
                 order = []
                 test_func = random.choice(test_funcs)
