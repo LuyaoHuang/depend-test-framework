@@ -8,6 +8,7 @@ import yaml
 import itertools
 import copy
 import logging
+import contextlib
 
 # Simple magic for using scripts within a source tree
 BASEDIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -42,6 +43,8 @@ def parse_cmd():
     parser.add_argument('--doc-modules', dest='doc_modules', action='store',
                         default="",
                         help='doc modules will be used to gen test case')
+    parser.add_argument('--work-path', dest='work_path', action='store',
+                        help='work path will be used')
     parser.add_argument('--mock', dest='mock', action='store_true',
                         help='Need mock all test steps')
     parser.add_argument('--debug', dest='debug', action='store_true',
@@ -110,6 +113,23 @@ def full_permutations(params_matrix):
         raise Exception
 
 
+@contextlib.contextmanager
+def change_work_path(params):
+    old_path = os.path.realpath(os.curdir)
+    if params.work_path:
+        path = os.path.realpath(params.work_path)
+    elif params.template:
+        path = os.path.dirname(os.path.realpath(params.template))
+        params.template = os.path.realpath(params.template)
+    else:
+        path = None
+    if path:
+        os.chdir(path)
+    yield
+    if path:
+        os.chdir(old_path)
+
+
 # This will be a good choise
 def load_template(template_file):
     with open(template_file) as fp:
@@ -140,25 +160,26 @@ def main():
     else:
         logging.basicConfig(level=logging.INFO)
 
-    if args.template:
-        for i, data in enumerate(load_template(args.template)):
-            params, modules, doc_modules, test_objs = data
-            d = Demo(modules, test_funcs=test_objs,
-                     doc_modules=doc_modules)
-            d.run(params, 'case%d.file' % i)
-    else:
-        modules_gen = load_modules(args.modules.split(','))
-        doc_modules = load_modules(args.doc_modules.split(','))
-        test_objs_gen = load_objs(args.test_objs.split(','))
-        params = load_params(args.params, args.params_conf)
+    with change_work_path(args):
+        if args.template:
+            for i, data in enumerate(load_template(args.template)):
+                params, modules, doc_modules, test_objs = data
+                d = Demo(modules, test_funcs=test_objs,
+                         doc_modules=doc_modules)
+                d.run(params, 'case%d.file' % i)
+        else:
+            modules_gen = load_modules(args.modules.split(','))
+            doc_modules = load_modules(args.doc_modules.split(','))
+            test_objs_gen = load_objs(args.test_objs.split(','))
+            params = load_params(args.params, args.params_conf)
 
-        if args.mock:
-            params.mock = True
+            if args.mock:
+                params.mock = True
 
-        # TODO: support specify test engine
-        d = Demo(list(modules_gen), test_funcs=list(test_objs_gen),
-                 doc_modules=list(doc_modules))
-        d.run(params)
+            # TODO: support specify test engine
+            d = Demo(list(modules_gen), test_funcs=list(test_objs_gen),
+                     doc_modules=list(doc_modules))
+            d.run(params)
 
 if __name__ == '__main__':
     main()
