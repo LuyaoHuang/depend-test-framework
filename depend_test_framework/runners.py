@@ -18,8 +18,8 @@ class Runner(object):
         self._checkpoints = checkpoints
         self.test_logger = test_logger
         self.doc_logger = doc_logger
-        self._extra_handler = None
         self._doc_funcs = doc_funcs
+        self._extra_handler = None
 
     def full_logger(self, msg):
         self.test_logger.info(msg)

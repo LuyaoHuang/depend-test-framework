@@ -4,15 +4,15 @@ Test Engine
 import inspect
 import random
 import contextlib
-from progressbar import ProgressBar, SimpleProgress, Counter, Timer
 
 from base_class import Container, Params, get_func_params_require
 from test_object import is_TestObject, is_Action, is_CheckPoint, is_Hybrid
-from dependency import is_Graft, is_Cut, get_all_depend, Provider, Consumer, Graft
+from dependency import is_Graft, get_all_depend, Provider, Consumer, Graft
 from log import get_logger, get_file_logger, make_timing_logger
 from case_generator import DependGraphCaseGenerator
 from runner_handlers import MistsHandler
 from runners import Runner
+from learning import StepsSeqScorer
 
 LOGGER = get_logger(__name__)
 time_log = make_timing_logger(LOGGER)
@@ -166,14 +166,22 @@ class Demo(BaseEngine):
 
         LOGGER.info('Find %d valid cases', len(case_matrix))
 
-        runner = Runner(self.params, self.checkpoints, self.doc_funcs, self.params.logger, self.params.doc_logger)
+        # This is the training part
+        # datas = self._create_training_data(case_matrix, test_func)
+        # lrn_program = StepsSeqScorer(5, func_map={func: i for i, func in enumerate(sorted(self.all_funcs))})
+        # lrn_program.train_and_test(list(datas))
+        # lrn_program.test(datas)
+
+        runner = Runner(self.params, self.checkpoints, self.doc_funcs,
+                        self.params.logger, self.params.doc_logger)
         extra_handler = MistsHandler(runner, self.case_gen)
         runner.set_extra_handler(extra_handler)
         # TODO use a class to be a cases container
         extra_cases = {}
         while case_matrix:
             case = case_matrix.pop(0)
-            new_extra_cases, is_mist = runner.run_case(case, i, test_func, need_cleanup, only_doc=only_doc)
+            new_extra_cases, is_mist = runner.run_case(case, i, test_func,
+                                                       need_cleanup, only_doc=only_doc)
             if not full_matrix and not is_mist:
                 break
             for mist_name, cases in new_extra_cases.items():
@@ -193,6 +201,32 @@ class Demo(BaseEngine):
                 i += 1
                 if not full_matrix:
                     break
+
+    def _create_training_data(self, cases, test_func):
+        # TODO: TMP
+        def score_a(case):
+            if case.step_num >= 13:
+                score = 1
+            elif 10 <= case.step_num < 13:
+                score = 2
+            elif 9 <= case.step_num < 10:
+                score = 3
+            elif 7 <= case.step_num < 9:
+                score = 4
+            elif case.step_num < 7:
+                score = 5
+            return score
+
+        def score_b(case, funcs):
+            return len(set(case.steps) & set(funcs))
+
+        random_funcs = random.sample(self.actions, 5)
+        for case in cases:
+            score = score_a(case)
+            #score = score_b(case, random_funcs)
+            steps_seq = list(case.steps)
+            steps_seq.append(test_func)
+            yield steps_seq, score
 
     @contextlib.contextmanager
     def preprare_logger(self, doc_file):

@@ -13,6 +13,9 @@ import depend_test_framework
 REQUIREMENTS = [
     'progressbar2',
     'PyYAML',
+    'numpy',
+    'tensorflow',
+    'pickle',
 ]
 
 DATA_FILES = [

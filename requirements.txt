@@ -1,2 +1,5 @@
 progressbar2
 PyYAML
+numpy
+tensorflow
+pickle
