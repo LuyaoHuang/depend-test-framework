@@ -109,67 +109,38 @@ class LSTM(object):
         self.saver = tf.train.Saver()
         self.sess = None
 
-    def _create_batch(self, datas, batch_size=100, mem_reply=True, random_batch=False):
-        list_batch_x, list_batch_y = [], []
-        memory = []
-        y_size = 0
-        for arr_x, arr_y in datas:
-            list_batch_x.append(arr_x)
-            list_batch_y.append(arr_y)
-            y_size = arr_y.size
-            if mem_reply:
-                memory.append((arr_x, arr_y))
-                if len(memory) < batch_size:
-                    continue
-
-                tmp = random.sample(memory, batch_size - 1)
-                batch_x, batch_y = zip(*tmp)
-                batch_x, batch_y = list(batch_x), list(batch_y)
-                batch_x.append(arr_x)
-                batch_y.append(arr_y)
-                batch_x = numpy.array(batch_x)
-                batch_y = numpy.array(batch_y)
-                batch_y = numpy.reshape(batch_y, (batch_size, y_size))
-                yield batch_x, batch_y
-            elif len(list_batch_x) == batch_size:
-                batch_x = numpy.array(list_batch_x)
-                batch_y = numpy.array(list_batch_y)
-                list_batch_x, list_batch_y = [], []
-                batch_y = numpy.reshape(batch_y, (batch_size, y_size))
-                yield batch_x, batch_y
-
-        if random_batch:
-            if not mem_reply:
-                raise Exception
-
-            while True:
-                tmp = random.sample(memory, batch_size)
-                batch_x, batch_y = zip(*tmp)
-                batch_x, batch_y = list(batch_x), list(batch_y)
-                batch_x = numpy.array(batch_x)
-                batch_y = numpy.array(batch_y)
-                batch_y = numpy.reshape(batch_y, (batch_size, y_size))
-                yield batch_x, batch_y
-
-    def _single_batch(self, datas):
-        data_list = list(datas)
-        arr_x, arr_y = list(self._create_batch(data_list,
-                                               batch_size=len(data_list),
-                                               mem_reply=False))[0]
-        return arr_x, arr_y
+    def _transfer_dataset(self, datas, batch_size=100, random=False, repeat=False, parser=None):
+        list_x, list_y = zip(*datas)
+        arr_x, arr_y = numpy.array(list_x), numpy.array(list_y)
+        # FIXME
+        arr_y = arr_y.reshape((arr_y.shape[0], arr_y.shape[-1]))
+        data_set = tf.contrib.data.Dataset.from_tensor_slices((arr_x, arr_y))
+        if parser:
+            data_set = data_set.map(parser)
+        if random:
+            data_set = data_set.shuffle(buffer_size=1000)
+        data_set = data_set.batch(batch_size)
+        if repeat:
+            data_set = data_set.repeat()
+        return data_set.make_initializable_iterator()
 
     def _init_sess(self, init=True):
         if not self.sess:
             self.sess = tf.Session()
-        if init:
-            self.sess.run(self.init)
+            if init:
+                self.sess.run(self.init)
         return self.sess
 
     def train(self, datas, debug=False):
         sess = self._init_sess()
         i = 0
         LOGGER.info('Start training ...')
-        for batch_x, batch_y in self._create_batch(datas, random_batch=True):
+        iterator = self._transfer_dataset(datas, random=True, repeat=True)
+        next_element = iterator.get_next()
+        sess.run(iterator.initializer)
+
+        while True:
+            batch_x, batch_y = sess.run(next_element)
             sess.run(self.train_op, feed_dict={self.X: batch_x, self.Y: batch_y})
             if debug:
                 loss, acc = sess.run([self.loss_op, self.accuracy],
@@ -185,8 +156,11 @@ class LSTM(object):
         return self.sess.run(self.accuracy, feed_dict={self.X: input_data, self.Y: test_label})
 
     def test(self, datas):
-        batch_x, batch_y = self._single_batch(datas)
-        return self.sess.run(self.accuracy, feed_dict={self.X: batch_x, self.Y: batch_y})
+        self._init_sess()
+        list_x, list_y = zip(*datas)
+        arr_x, arr_y = numpy.array(list_x), numpy.array(list_y)
+        arr_y = arr_y.reshape((arr_y.shape[0], arr_y.shape[-1]))
+        return self.sess.run(self.accuracy, feed_dict={self.X: arr_x, self.Y: arr_y})
 
     def save(self, path):
         self.saver.save(self.sess, path)
@@ -195,6 +169,10 @@ class LSTM(object):
         self._init_sess(init=False)
         if os.path.exists(path + '.index'):
             self.saver.restore(self.sess, path)
+
+    def __del__(self):
+        if self.sess:
+            self.sess.close()
 
 
 def unit_test():

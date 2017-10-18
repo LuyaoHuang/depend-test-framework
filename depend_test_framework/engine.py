@@ -170,7 +170,8 @@ class Demo(BaseEngine):
         # datas = self._create_training_data(case_matrix, test_func)
         # lrn_program = StepsSeqScorer(5, func_map={func: i for i, func in enumerate(sorted(self.all_funcs))})
         # lrn_program.train_and_test(list(datas))
-        # lrn_program.test(datas)
+        # lrn_program.test(list(datas))
+        # return
 
         runner = Runner(self.params, self.checkpoints, self.doc_funcs,
                         self.params.logger, self.params.doc_logger)
