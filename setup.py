@@ -15,7 +15,6 @@ REQUIREMENTS = [
     'PyYAML',
     'numpy',
     'tensorflow',
-    'pickle',
 ]
 
 DATA_FILES = [
