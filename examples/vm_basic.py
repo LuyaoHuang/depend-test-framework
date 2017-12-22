@@ -47,7 +47,9 @@ class define_guest(TestObject):
         self._test_entry.add(Provider('$guest_name.config', Provider.SET))
 
     def __call__(self, params, env):
+        ret = run_cmd("virsh define " + params.guest_xml)
         params.logger.info("define guest %s", params.guest_name)
+
 
 class undefine_guest(TestObject):
     """undefine guest"""
@@ -59,4 +61,5 @@ class undefine_guest(TestObject):
         self._test_entry.add(Cut('$guest_name.config'))
 
     def __call__(self, params, env):
+        ret = run_cmd("virsh undefine " + params.guest_name)
         params.logger.info("undefine guest %s", params.guest_name)

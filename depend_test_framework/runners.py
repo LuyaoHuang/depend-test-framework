@@ -43,7 +43,7 @@ class Runner(object):
             doc_func_name = func.__class__.__name__
 
         if doc_func_name not in self._doc_funcs.keys():
-            raise Exception("Not define %s name in doc modules" % doc_func_name)
+            return
         return self._doc_funcs[doc_func_name]
 
     def run_one_step(self, func, step_index=None, check=False, only_doc=True):
@@ -56,6 +56,8 @@ class Runner(object):
             step_index += 1
 
         doc_func = self._get_doc_func(func)
+        if not doc_func and only_doc:
+            raise Exception("Not define %s name in doc modules" % func)
         LOGGER.debug("Start transfer env, func: %s env: %s", func, self.env)
         new_env = self.env.gen_transfer_env(func)
         if new_env is None:
@@ -65,7 +67,7 @@ class Runner(object):
 
         # XXX: we transfer the env before the test func, and test func can update info in the env
         if self._extra_handler:
-            self._extra_handler.handle_func(func, doc_func, new_env, True)
+            self._extra_handler.handle_func(func, doc_func, new_env, only_doc)
         else:
             if only_doc:
                 doc_func(self.params, new_env)
