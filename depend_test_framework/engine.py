@@ -274,4 +274,5 @@ class Demo(BaseEngine):
                 self._start_test(test_func,
                                  full_matrix=self.params.full_matrix,
                                  max_cases=self.params.max_cases,
-                                 only_doc=True if self.params.test_case else False)
+                                 only_doc=True if self.params.test_case else False,
+                                 need_cleanup=True if self.params.cleanup else False)

@@ -17,6 +17,9 @@ ENV = {}
 # @Provider.decorator('$guest_name.active', Provider.SET)
 @Graft.decorator('$guest_name.config', '$guest_name.active')
 def start_guest(params, env):
+    """
+    Start guest
+    """
     guest = params.guest_name
     cmd = 'virsh start ' + guest
     if params.mock:
@@ -31,6 +34,9 @@ def start_guest(params, env):
 # @Provider.decorator('$guest_name.active', Provider.CLEAR)
 @Cut.decorator('$guest_name.active')
 def destroy_guest(params, env):
+    """
+    Destroy guest
+    """
     guest = params.guest_name
     cmd = 'virsh destroy ' + guest
     if params.mock:

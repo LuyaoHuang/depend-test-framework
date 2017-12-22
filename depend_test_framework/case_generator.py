@@ -3,6 +3,7 @@ Helper classes to help generate case
 """
 
 import itertools
+import random
 from progressbar import ProgressBar, SimpleProgress, Counter, Timer
 
 from log import get_logger

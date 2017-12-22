@@ -138,6 +138,7 @@ class LSTM(object):
         iterator = self._transfer_dataset(datas, random=True, repeat=True)
         next_element = iterator.get_next()
         sess.run(iterator.initializer)
+        # writer = tf.summary.FileWriter("/tmp/log/test", sess.graph)
 
         while True:
             batch_x, batch_y = sess.run(next_element)
@@ -151,6 +152,7 @@ class LSTM(object):
             i += 1
             if i > 1000:
                 break
+        # writer.close()
 
     def run(self, input_data):
         return self.sess.run(self.accuracy, feed_dict={self.X: input_data, self.Y: test_label})
