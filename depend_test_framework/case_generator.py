@@ -56,7 +56,7 @@ class DependGraphCaseGenerator(object):
             ret_routes.extend(itertools.product(*route))
         return ret_routes
 
-    def gen_cases(self, test_func, random_cleanup=True, need_cleanup=False, src_env=None):
+    def gen_cases(self, test_func, random_cleanup=False, need_cleanup=False, src_env=None):
         if not src_env:
             src_env = Env()
         target_env = Env.gen_require_env(test_func)
