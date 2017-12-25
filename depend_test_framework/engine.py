@@ -280,5 +280,5 @@ class Demo(BaseEngine):
                                  max_cases=self.params.max_cases,
                                  only_doc=True if self.params.test_case else False,
                                  need_cleanup=True if self.params.cleanup else False)
-                LOGGER.info("Test %s          \033[92mPASS\033[0m",
-                LOGGER.info("")
+                LOGGER.info("Test %s          \033[92mPASS\033[0m\n",
+                            self._get_func_name(test_func))
