@@ -55,7 +55,7 @@ def route_permutations(graph, start, target,
     del(new_trace)
     history[start] = routes
     if pb:
-        pb.update(len(history) + 1)
+        pb.update(len(history))
     # LOGGER.info("Trace: %s", trace)
     # LOGGER.info("Map: %s", nodes_map)
     # LOGGER.info("Start: %s", start)
