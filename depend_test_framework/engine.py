@@ -98,11 +98,6 @@ class BaseEngine(object):
                 need_remove.add(func)
         container -= need_remove
 
-    def full_logger(self, msg):
-        # TODO
-        LOGGER.info(msg)
-        self.params.doc_logger.info(msg)
-
 
 class Template(BaseEngine):
     pass
@@ -150,16 +145,20 @@ class Demo(BaseEngine):
             test_funcs = self.test_funcs
         return test_funcs
 
+    @staticmethod
+    def _get_func_name(test_func):
+        if getattr(test_func, 'func_name', None):
+            return getattr(test_func, 'func_name')
+        else:
+            return str(test_func)
+
     def _start_test(self, test_func, need_cleanup=False,
                     full_matrix=True, max_cases=None, only_doc=True):
-        if getattr(test_func, 'func_name', None):
-            title = getattr(test_func, 'func_name')
-        else:
-            title = str(test_func)
+        title = self._get_func_name(test_func)
 
         self.params.doc_logger = self.params.case_logger
-        self.full_logger("=" * 8 + " %s " % title + "=" * 8)
-        self.full_logger("")
+        self.params.logger.info("=" * 8 + " %s " % title + "=" * 8)
+        self.params.logger.info("")
         i = 1
         with time_log('Compute case permutations'):
             case_matrix = sorted(list(self.case_gen.gen_cases(test_func, need_cleanup=need_cleanup)))
@@ -177,6 +176,7 @@ class Demo(BaseEngine):
                         self.params.logger, self.params.doc_logger)
         extra_handler = MistsHandler(runner, self.case_gen)
         runner.set_extra_handler(extra_handler)
+
         # TODO use a class to be a cases container
         extra_cases = {}
         while case_matrix:
@@ -196,7 +196,9 @@ class Demo(BaseEngine):
         runner.doc_logger = self.params.mist_logger
         for name, extra_case in extra_cases.items():
             for case in sorted(extra_case):
-                ret, is_mist = runner.run_case(case, i, need_cleanup=need_cleanup, only_doc=only_doc)
+                ret, is_mist = runner.run_case(case, i,
+                                               need_cleanup=need_cleanup,
+                                               only_doc=only_doc)
                 if is_mist:
                     raise NotImplementedError
                 i += 1
@@ -231,8 +233,9 @@ class Demo(BaseEngine):
 
     @contextlib.contextmanager
     def preprare_logger(self, doc_file):
-        self.params.logger = LOGGER
         doc_path = 'doc.file' if not doc_file else doc_file
+        run_log_path = doc_path + ".log"
+        self.params.logger = get_file_logger(run_log_path, run_log_path)
         if self.params.mist_rules == 'both':
             logger = get_file_logger(doc_path, doc_path)
             self.params.case_logger = logger
@@ -249,6 +252,7 @@ class Demo(BaseEngine):
             LOGGER.info('Write extra case to %s', mist_file)
         else:
             raise NotImplementedError
+        LOGGER.info('Write case runtime log to %s', run_log_path)
 
     def prepare(self):
         self.filter_all_func_custom(self._cb_filter_with_param)
@@ -276,3 +280,5 @@ class Demo(BaseEngine):
                                  max_cases=self.params.max_cases,
                                  only_doc=True if self.params.test_case else False,
                                  need_cleanup=True if self.params.cleanup else False)
+                LOGGER.info("Test %s          \033[92mPASS",
+                            self._get_func_name(test_func))
