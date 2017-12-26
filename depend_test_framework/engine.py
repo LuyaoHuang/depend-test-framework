@@ -71,12 +71,13 @@ class BaseEngine(object):
                     self.doc_funcs[name] = getattr(module, name)
                     break
 
-        for _, obj in inspect.getmembers(self.hook_module,
-                                         lambda x: issubclass(x, EnvHook)):
-            self.env_hooks.add(obj())
-        for _, obj in inspect.getmembers(self.hook_module,
-                                         lambda x: issubclass(x, CaseHook)):
-            self.case_hooks.add(obj())
+        if self.hook_module:
+            for _, obj in inspect.getmembers(self.hook_module,
+                                             lambda x: issubclass(x, EnvHook)):
+                self.env_hooks.add(obj())
+            for _, obj in inspect.getmembers(self.hook_module,
+                                             lambda x: issubclass(x, CaseHook)):
+                self.case_hooks.add(obj())
 
     def run(self):
         raise NotImplementedError
