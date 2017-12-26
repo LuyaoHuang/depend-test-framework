@@ -40,6 +40,9 @@ def parse_cmd():
     parser.add_argument('--modules', dest='modules', action='store',
                         default="",
                         help='modules will be used')
+    parser.add_argument('--hook-module', dest='hook_module', action='store',
+                        default="",
+                        help='Hook module will be used')
     parser.add_argument('--doc-modules', dest='doc_modules', action='store',
                         default="",
                         help='doc modules will be used to gen test case')
@@ -59,6 +62,12 @@ def load_modules(modules_list):
     sys.path.insert(0, cmd_folder)
     for module in modules_list:
         yield importlib.import_module(module)
+
+
+def load_module(module_name):
+    cmd_folder = os.path.realpath('.')
+    sys.path.insert(0, cmd_folder)
+    return importlib.import_module(module_name)
 
 
 def load_objs(test_objs_list):
@@ -161,11 +170,12 @@ def main():
         logging.basicConfig(level=logging.INFO)
 
     with change_work_path(args):
+        hook_module = load_module(args.hook_module)
         if args.template:
             for i, data in enumerate(load_template(args.template)):
                 params, modules, doc_modules, test_objs = data
                 d = Demo(modules, test_funcs=test_objs,
-                         doc_modules=doc_modules)
+                         doc_modules=doc_modules, hook_module=hook_module)
                 d.run(params, 'case%d.file' % i)
         else:
             modules_gen = load_modules(args.modules.split(','))
@@ -178,7 +188,7 @@ def main():
 
             # TODO: support specify test engine
             d = Demo(list(modules_gen), test_funcs=list(test_objs_gen),
-                     doc_modules=list(doc_modules))
+                     doc_modules=list(doc_modules), hook_module=hook_module)
             d.run(params)
 
 if __name__ == '__main__':

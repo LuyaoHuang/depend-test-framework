@@ -65,7 +65,10 @@ class Entrypoint(object):
 
 
 class Container(set):
-    pass
+    def imap(self, func_name, *args, **kwargs):
+        for obj in self:
+            func = getattr(obj, func_name)
+            func(*args, **kwargs)
 
 
 class ParamsRequire(Entrypoint):

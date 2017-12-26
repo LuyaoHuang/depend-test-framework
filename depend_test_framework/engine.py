@@ -13,6 +13,7 @@ from case_generator import DependGraphCaseGenerator
 from runner_handlers import MistsHandler
 from runners import Runner
 from learning import StepsSeqScorer
+from hook import EnvHook, CaseHook
 
 LOGGER = get_logger(__name__)
 time_log = make_timing_logger(LOGGER)
@@ -27,13 +28,17 @@ def get_name(obj):
 
 
 class BaseEngine(object):
-    def __init__(self, modules, doc_modules):
+    def __init__(self, modules, doc_modules, hook_module=None):
         self.modules = modules
         self.doc_modules = doc_modules
+        self.hook_module = hook_module
         self.checkpoints = Container()
         self.actions = Container()
         self.hybrids = Container()
         self.grafts = Container()
+        self.env_hooks = Container()
+        # TODO: not used right now
+        self.case_hooks = Container()
         # TODO: not use dict
         self.doc_funcs = {}
         self.params = Params()
@@ -65,6 +70,13 @@ class BaseEngine(object):
                 if getattr(module, name, None):
                     self.doc_funcs[name] = getattr(module, name)
                     break
+
+        for _, obj in inspect.getmembers(self.hook_module,
+                                         lambda x: issubclass(x, EnvHook)):
+            self.env_hooks.add(obj())
+        for _, obj in inspect.getmembers(self.hook_module,
+                                         lambda x: issubclass(x, CaseHook)):
+            self.case_hooks.add(obj())
 
     def run(self):
         raise NotImplementedError
@@ -121,17 +133,17 @@ class AI(BaseEngine):
 
 class Demo(BaseEngine):
     """
-    Standerd Engine + Mist handler
+    Standerd Engine + Mist handler + Hook support
     """
     def __init__(self, basic_modules, test_modules=None,
-                 test_funcs=None, doc_modules=None):
+                 test_funcs=None, doc_modules=None, hook_module=None):
         self.test_modules = test_modules
         self.test_funcs = test_funcs
         tmp_modules = []
         tmp_modules.extend(basic_modules)
         if self.test_modules:
             tmp_modules.extend(test_modules)
-        super(Demo, self).__init__(tmp_modules, doc_modules)
+        super(Demo, self).__init__(tmp_modules, doc_modules, hook_module)
 
     def _prepare_test_funcs(self):
         if not self.test_modules and not self.test_funcs:
@@ -268,17 +280,23 @@ class Demo(BaseEngine):
 
             tests = []
             test_funcs = self._prepare_test_funcs()
+            self.env_hooks.imap("setup", params)
 
             while test_funcs:
                 # TODO
-                test_case = []
-                order = []
                 test_func = random.choice(test_funcs)
                 test_funcs.remove(test_func)
-                self._start_test(test_func,
-                                 full_matrix=self.params.full_matrix,
-                                 max_cases=self.params.max_cases,
-                                 only_doc=True if self.params.test_case else False,
-                                 need_cleanup=True if self.params.cleanup else False)
-                LOGGER.info("Test %s          \033[92mPASS\033[0m\n",
-                            self._get_func_name(test_func))
+                try:
+                    self._start_test(test_func,
+                                     full_matrix=self.params.full_matrix,
+                                     max_cases=self.params.max_cases,
+                                     only_doc=True if self.params.test_case else False,
+                                     need_cleanup=True if self.params.cleanup else False)
+                    LOGGER.info("Test %s          \033[92mPASS\033[0m\n",
+                                self._get_func_name(test_func))
+                except:
+                    LOGGER.info("Test %s          \033[91mFAIL\033[0m\n",
+                                self._get_func_name(test_func))
+                    raise
+                finally:
+                    self.env_hooks.imap("clean_up", params)
