@@ -170,7 +170,7 @@ def main():
         logging.basicConfig(level=logging.INFO)
 
     with change_work_path(args):
-        hook_module = load_module(args.hook_module)
+        hook_module = load_module(args.hook_module) if args.hook_module else None
         if args.template:
             for i, data in enumerate(load_template(args.template)):
                 params, modules, doc_modules, test_objs = data
