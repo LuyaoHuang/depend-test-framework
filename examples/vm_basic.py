@@ -25,7 +25,8 @@ def start_guest(params, env):
     if params.mock:
         params.logger.info("Mock: " + cmd)
         return
-    run_cmd(cmd)
+    ret = run_cmd(cmd)
+    params.logger.info("# %s\n%s", cmd, ret)
 
 
 @Action.decorator(1)
@@ -42,7 +43,8 @@ def destroy_guest(params, env):
     if params.mock:
         params.logger.info("Mock: " + cmd)
         return
-    run_cmd(cmd)
+    ret = run_cmd(cmd)
+    params.logger.info("# %s\n%s", cmd, ret)
 
 
 class define_guest(TestObject):
@@ -53,8 +55,9 @@ class define_guest(TestObject):
         self._test_entry.add(Provider('$guest_name.config', Provider.SET))
 
     def __call__(self, params, env):
-        ret = run_cmd("virsh define " + params.guest_xml)
-        params.logger.info("define guest %s", params.guest_name)
+        cmd = "virsh define " + params.guest_xml
+        ret = run_cmd(cmd)
+        params.logger.info("# %s\n%s", cmd, ret)
 
 
 class undefine_guest(TestObject):
@@ -67,5 +70,6 @@ class undefine_guest(TestObject):
         self._test_entry.add(Cut('$guest_name.config'))
 
     def __call__(self, params, env):
-        ret = run_cmd("virsh undefine " + params.guest_name)
-        params.logger.info("undefine guest %s", params.guest_name)
+        cmd = "virsh undefine " + params.guest_name
+        ret = run_cmd(cmd)
+        params.logger.info("# %s\n%s", cmd, ret)
