@@ -13,6 +13,10 @@ LOGGER = get_logger(__name__)
 def route_permutations(graph, start, target,
                        trace=None, history=None, pb=None,
                        allow_dep=None, dep=None):
+    """
+    Help to compute all the permutations of the way in the graph
+    TODO: Use some package which related to graph based machine learning
+    """
     routes = []
     nodes_map = graph[start]
 
@@ -185,6 +189,7 @@ def unit_test():
          'y': {'s': 7, 'v': 6}}
     LOGGER.info(route_permutations(G, 's', 'u'))
     LOGGER.info(route_permutations(G, 'x', 'y'))
+
 
 if __name__ == '__main__':
     unit_test()

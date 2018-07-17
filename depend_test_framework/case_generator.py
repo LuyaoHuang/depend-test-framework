@@ -20,10 +20,16 @@ class DependGraphCaseGenerator(object):
     Case generator which use a directed graph to describe
     the dependency of the work items
     """
-    def __init__(self, suit_env_limit=20, allow_dep=8):
+    def __init__(self, suit_env_limit=20, allow_dep=8, use_map=True):
         self.dep_graph = None
         self._allow_dep = allow_dep
         self._suit_env_limit = suit_env_limit
+
+        # graph objs mapping
+        self._use_map = use_map
+        self._nodes_map = []
+        self._edge_map = []
+        self._v_graph = None
 
     def find_suit_envs(self, env):
         if not self.dep_graph:
@@ -45,10 +51,13 @@ class DependGraphCaseGenerator(object):
         # TODO encapsulation the ProgressBar in utils
         widgets = ['Processed: ', Counter(), ' of %d (' % len(self.dep_graph), Timer(), ')']
         pbar = ProgressBar(widgets=widgets, maxval=len(self.dep_graph)).start()
+        graph = self._v_graph if self._use_map else self.dep_graph
+        src_node = self._nodes_map.index(src_env) if self._use_map else src_env
+        tgt_node = self._nodes_map.index(target_env) if self._use_map else target_env
         if cleanup:
-            routes = route_permutations(self.dep_graph, target_env, src_env, pb=pbar, allow_dep=self._allow_dep)
+            routes = route_permutations(graph, tgt_node, src_node, pb=pbar, allow_dep=self._allow_dep)
         else:
-            routes = route_permutations(self.dep_graph, src_env, target_env, pb=pbar, allow_dep=self._allow_dep)
+            routes = route_permutations(graph, src_node, tgt_node, pb=pbar, allow_dep=self._allow_dep)
         pbar.finish()
 
         ret_routes = []
@@ -70,10 +79,12 @@ class DependGraphCaseGenerator(object):
                         cleanup_steps = random.choice(cleanups)
                     else:
                         cleanup_steps = min(cleanups)
+                    cleanup_steps = self.restore_onigin_data(cleanup_steps)
 
             LOGGER.debug("env: %s case num: %d" % (tgt_env, len(cases)))
             for case in cases:
-                case_obj = Case(case, tgt_env=tgt_env,
+                tmp_case = self.restore_onigin_data(case)
+                case_obj = Case(tmp_case, tgt_env=tgt_env,
                                 cleanups=cleanup_steps)
                 yield case_obj
 
@@ -95,6 +106,8 @@ class DependGraphCaseGenerator(object):
                     if cases:
                         for data in itertools.product(cases, funcs):
                             case = list(data[0])
+                            case = self.restore_onigin_data(case)
+
                             case.append(data[1])
                             case_obj = Case(case, tgt_env=tgt_end_env)
                             yield case_obj
@@ -133,6 +146,34 @@ class DependGraphCaseGenerator(object):
         LOGGER.info('Depend map is %d x %d size',
                     len(dep_graph), len(dep_graph))
         self.dep_graph = dep_graph
+        if self._use_map:
+            self.build_graph_map()
+
+    def build_graph_map(self):
+        if not self.dep_graph:
+            return
+
+        self._nodes_map = self.dep_graph.keys()
+        v_graph = {}
+
+        for node in self._nodes_map:
+            sub_map = {}
+            for tgt_node, datas in self.dep_graph[node].items():
+                tmp_datas = set()
+                for data in datas:
+                    if data not in self._edge_map:
+                        self._edge_map.append(data)
+                    tmp_datas.add(self._edge_map.index(data))
+                sub_map[self._nodes_map.index(tgt_node)] = tmp_datas
+            v_graph[self._nodes_map.index(node)] = sub_map
+
+        self._v_graph = v_graph
+
+    def restore_onigin_data(self, datas):
+        if self._use_map:
+            return [self._edge_map[data] for data in datas]
+        else:
+            return datas
 
     def save_dep_graph(self, path=None):
         raise NotImplementedError
