@@ -114,6 +114,7 @@ class MistsHandler(object):
             for case_obj in self._case_gen.gen_cases_special(src_env, start_env, end_env):
                 yield name, case_obj
 
+
 class MistsContainer(list):
     """
     A list to store the mist

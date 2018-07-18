@@ -79,7 +79,7 @@ class LSTM(object):
             x = tf.unstack(x, timesteps, 1)
 
             # Define a lstm cell with tensorflow
-            #lstm_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
+            # lstm_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
             lstm_cell = rnn.BasicLSTMCell(num_hidden)
 
             # Get lstm cell output
@@ -150,8 +150,8 @@ class LSTM(object):
             if debug:
                 loss, acc = sess.run([self.loss_op, self.accuracy],
                                      feed_dict={self.X: batch_x, self.Y: batch_y})
-                LOGGER.info("Step " + str(i) + ", Minibatch Loss= " + \
-                            "{:.4f}".format(loss) + ", Training Accuracy= " + \
+                LOGGER.info("Step " + str(i) + ", Minibatch Loss= " +
+                            "{:.4f}".format(loss) + ", Training Accuracy= " +
                             "{:.3f}".format(acc))
             i += 1
             if i > 1000:
@@ -159,7 +159,8 @@ class LSTM(object):
         # writer.close()
 
     def run(self, input_data):
-        return self.sess.run(self.accuracy, feed_dict={self.X: input_data, self.Y: test_label})
+        # return self.sess.run(self.accuracy, feed_dict={self.X: input_data, self.Y: test_label})
+        return
 
     def test(self, datas):
         self._init_sess()

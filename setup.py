@@ -70,7 +70,9 @@ class SyntaxCheck(Command):
         cmd += "--config tests/pep8.cfg "
         cmd += " ".join(CHECK_FILES)
         cmd += " %s" % self.pep8_extra_args
-        os.system(cmd)
+        r = os.system(cmd)
+        if r != 0:
+            sys.exit(r)
 
         print "running pylint"
         cmd = "pylint "
@@ -78,7 +80,9 @@ class SyntaxCheck(Command):
         cmd += "--output-format=%s " % output_format
         cmd += " ".join(CHECK_FILES)
         cmd += " %s" % self.pylint_extra_args
-        os.system(cmd)
+        r = os.system(cmd)
+        if r != 0:
+            sys.exit(r)
 
 
 if __name__ == '__main__':

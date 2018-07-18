@@ -239,7 +239,7 @@ class Demo(BaseEngine):
         random_funcs = random.sample(self.actions, 5)
         for case in cases:
             score = score_a(case)
-            #score = score_b(case, random_funcs)
+            # score = score_b(case, random_funcs)
             steps_seq = list(case.steps)
             steps_seq.append(test_func)
             yield steps_seq, score
