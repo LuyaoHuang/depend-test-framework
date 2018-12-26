@@ -3,8 +3,7 @@ import glob
 import sys
 import os
 
-from setuptools import setup
-from setuptools import Command
+from setuptools import setup, Command, find_packages
 from setuptools.command.test import test as TestCommand
 
 import depend_test_framework
@@ -19,10 +18,6 @@ REQUIREMENTS = [
 
 DATA_FILES = [
     ('share/depend_test_framework/examples', glob.glob('examples/*'))
-]
-
-PACKAGES = [
-    'depend_test_framework',
 ]
 
 CHECK_FILES = [
@@ -96,7 +91,7 @@ if __name__ == '__main__':
         description='A test framework which use dependency of test step to generate test case',
         scripts=glob.glob('scripts/*'),
         tests_require=['pytest'],
-        packages=PACKAGES,
+        packages=find_packages(exclude=['tests']),
         data_files=DATA_FILES,
         cmdclass={'test': PyTest, 'syntax_check': SyntaxCheck},
         install_requires=REQUIREMENTS,
