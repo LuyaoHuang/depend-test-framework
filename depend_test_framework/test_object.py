@@ -117,6 +117,28 @@ class Mist(object):
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
 
+    @classmethod
+    def issubclass(cls, obj):
+        if cls == obj:
+            # Don't use this class directly
+            return False
+        try:
+            return issubclass(obj, cls)
+        except TypeError:
+            return False
+
+
+class StaticMist(Mist):
+    _area = dict()
+    active = True
+    doc_func = None
+
+    def __init__(self):
+        super(StaticMist, self).__init__(self._area, self.custom_func)
+
+    def custom_func(self):
+        raise NotImplementedError
+
 
 def is_TestObject(obj):
     try:

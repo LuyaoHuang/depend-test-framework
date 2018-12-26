@@ -6,7 +6,7 @@ import random
 import contextlib
 
 from base_class import Container, Params, get_func_params_require
-from test_object import is_TestObject, is_Action, is_CheckPoint, is_Hybrid
+from test_object import is_TestObject, is_Action, is_CheckPoint, is_Hybrid, StaticMist
 from dependency import is_Graft, get_all_depend, Provider, Consumer, Graft
 from log import get_logger, get_file_logger, make_timing_logger
 from case_generator import DependGraphCaseGenerator
@@ -145,6 +145,11 @@ class Demo(BaseEngine):
         if self.test_modules:
             tmp_modules.extend(test_modules)
         super(Demo, self).__init__(tmp_modules, doc_modules, hook_module)
+        # load static mist for mist handler
+        self.static_mists = Container()
+
+        for _, cls in inspect.getmembers(tmp_modules, StaticMist.issubclass):
+            self.static_mists.add(cls())
 
     def _prepare_test_funcs(self):
         if not self.test_modules and not self.test_funcs:
@@ -166,7 +171,7 @@ class Demo(BaseEngine):
             return str(test_func)
 
     def _load_extra_handler(self, runner):
-        extra_handler = MistsHandler(runner, self.case_gen)
+        extra_handler = MistsHandler(runner, self.case_gen, static_mist=self.static_mists)
         runner.set_extra_handler(extra_handler)
 
     def _training(self, case_matrix, test_func):

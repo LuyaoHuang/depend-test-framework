@@ -13,9 +13,10 @@ LOGGER = get_logger(__name__)
 
 
 class MistsHandler(object):
-    def __init__(self, runner, case_gen):
+    def __init__(self, runner, case_gen, static_mist=None):
         self._runner = runner
         self._mists_c = None
+        self._static_mist = static_mist
         self._last_mist = None
         self._case_gen = case_gen
 
