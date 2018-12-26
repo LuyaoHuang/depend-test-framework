@@ -20,6 +20,9 @@ class StepsSeqScorer(object):
         self._y_size = max_score + 1
         self._x_size = len(self.func_map)
         self._algorithm = algorithm or LSTM
+        if not self._algorithm:
+            raise Exception("Cannot find any valid algorithm for use")
+
         self._data_file = data_file
         if not algorithm:
             self._algorithm = LSTM(self._x_size, self._time_steps, self._y_size)
