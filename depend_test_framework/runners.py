@@ -5,7 +5,7 @@ Helper classes to help run test case
 from log import get_logger
 from env import Env
 from dependency import get_all_depend, Consumer
-from test_object import MistDeadEndException
+from test_object import TestEndException
 
 LOGGER = get_logger(__name__)
 
@@ -117,8 +117,7 @@ class Runner(object):
                 have_extra_cases = True
                 for cases_name, case in tmp_cases:
                     extra_cases.setdefault(cases_name, []).append(case)
-        # TODO: move MistDeadEndException to handler
-        except MistDeadEndException:
+        except TestEndException:
             # TODO: maybe need clean up
             pass
         else:

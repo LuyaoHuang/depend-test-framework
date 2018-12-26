@@ -5,7 +5,7 @@ Helpers which help handle the runner result and extend the runner function
 import itertools
 import contextlib
 
-from test_object import MistClearException
+from test_object import MistClearException, TestEndException
 from case import Case
 from log import get_logger
 
@@ -74,6 +74,8 @@ class MistsHandler(object):
                 mist_func(name, test_func, params, tgt_env)
             except MistClearException:
                 mists.remove(mist_func)
+            except MistDeadEndException:
+                raise TestEndException
             # TODO: mist in the mist
             new_mist = None
         else:

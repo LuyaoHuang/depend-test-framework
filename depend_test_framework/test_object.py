@@ -69,6 +69,11 @@ class Hybrid(Entrypoint):
         return True if self.actions else False
 
 
+class TestEndException(Exception):
+    """ this exception means test end
+    """
+
+
 class MistDeadEndException(Exception):
     """
     This means the mist is end of the road
