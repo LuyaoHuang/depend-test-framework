@@ -225,21 +225,26 @@ def set_memballoon_xml(params, env):
     <memballoon model='%s'>
     </memballoon>
         """ % params.memballoon.model)
+    info = env.get_data('$guest_name.config').data
+    info['memballoon'] = dict(params.memballoon)
 
-    if params.memballoon.model == 'none':
-        # TODO: add a new mist type to support check the provider
-        start = [Provider('$guest_name.active', Provider.SET)]
-        end = [Provider('$guest_name.active', Provider.SET),
-               Provider('$guest_name.active.curmem', Provider.SET)]
 
-        def no_memballon(name, func, params, env):
-            params.doc_logger.info(STEPS + "# virsh setmem %s %d" % (params.guest_name, params.curmem))
-            params.doc_logger.info(RESULT + "error: Requested operation is not valid: " +
-                "Unable to change memory of active domain " +
-                "without the balloon device and guest OS balloon driver")
-            raise MistDeadEndException
+def no_memballon(mist_obj, name, func, params, env):
+    """
+    Change guest memory and check mem balloon
+    """
+    info = env.get_data('$guest_name.active').data
+    memballoon = info.get('memballoon')
+    if memballoon and memballoon.get('model') == "none":
+        params.doc_logger.info(STEPS + "# virsh setmem %s %d" % (params.guest_name, params.curmem))
+        params.doc_logger.info(RESULT + "error: Requested operation is not valid: " +
+            "Unable to change memory of active domain " +
+            "without the balloon device and guest OS balloon driver")
+        raise MistDeadEndException
+    else:
+        # call origin func here
+        func(params, env)
 
-        return Mist({"set_mem": (start, end)}, no_memballon)
 
 
 # TODO maybe we can merge this two to one func ?

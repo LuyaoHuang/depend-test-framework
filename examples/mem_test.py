@@ -1,10 +1,11 @@
 from utils import enter_depend_test
 enter_depend_test()
 
-from depend_test_framework.test_object import Action, CheckPoint, TestObject, Mist, MistDeadEndException, MistClearException
+from depend_test_framework.test_object import Action, CheckPoint, TestObject, Mist, MistDeadEndException, MistClearException, StaticMist
 from depend_test_framework.dependency import Provider, Consumer
 from depend_test_framework.base_class import ParamsRequire
 
+from mem_test_doc import no_memballon
 
 @Action.decorator(1)
 @ParamsRequire.decorator(['guest_name', 'pagesize'])
@@ -178,3 +179,17 @@ def check_period_in_xml(params, env):
     """
     """
     pass
+
+
+class setmem_mist(StaticMist):
+    """
+    TODO
+    """
+    _area = {"set_mem": ([Provider('$guest_name.active', Provider.SET),
+                          Provider('$guest_name.active.curmem', Provider.CLEAR)],
+                          [Provider('$guest_name.active', Provider.SET),
+                           Provider('$guest_name.active.curmem', Provider.SET)])}
+    _doc_func = no_memballon
+
+    def custom_func(self, func, params, env):
+        pass
