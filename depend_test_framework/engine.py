@@ -148,8 +148,9 @@ class Demo(BaseEngine):
         # load static mist for mist handler
         self.static_mists = Container()
 
-        for _, cls in inspect.getmembers(tmp_modules, StaticMist.issubclass):
-            self.static_mists.add(cls())
+        for module in tmp_modules:
+            for _, cls in inspect.getmembers(module, StaticMist.issubclass):
+                self.static_mists.add(cls())
 
     def _prepare_test_funcs(self):
         if not self.test_modules and not self.test_funcs:
@@ -173,6 +174,7 @@ class Demo(BaseEngine):
     def _load_extra_handler(self, runner):
         extra_handler = MistsHandler(runner, self.case_gen, static_mist=self.static_mists)
         runner.set_extra_handler(extra_handler)
+        return extra_handler
 
     def _training(self, case_matrix, test_func):
         datas = self._create_training_data(case_matrix, test_func)
@@ -188,18 +190,22 @@ class Demo(BaseEngine):
         self.params.logger.info("=" * 8 + " %s " % title + "=" * 8)
         self.params.logger.info("")
         i = 1
+
+        # create runner
+        runner = Runner(self.params, self.checkpoints, self.doc_funcs,
+                        self.params.logger, self.params.doc_logger)
+        extra_handler = self._load_extra_handler(runner)
+
+        # generate test case
         with time_log('Compute case permutations'):
-            case_matrix = sorted(list(self.case_gen.gen_cases(test_func, need_cleanup=need_cleanup)))
+            # TODO: is that a good idea to use handler to gen case ?
+            case_matrix = sorted(list(extra_handler.gen_cases(test_func, need_cleanup=need_cleanup)))
 
         LOGGER.info('Find %d valid cases', len(case_matrix))
 
-        # This is the training part
+        # training part
         # self._training(case_matrix, test_func)
         # return
-
-        runner = Runner(self.params, self.checkpoints, self.doc_funcs,
-                        self.params.logger, self.params.doc_logger)
-        self._load_extra_handler(runner)
 
         # TODO use a class to be a cases container
         extra_cases = {}
@@ -298,6 +304,10 @@ class Demo(BaseEngine):
                 # TODO
                 test_func = random.choice(test_funcs)
                 test_funcs.remove(test_func)
+                # FIXME: remove this
+                if StaticMist.issubclass(test_func):
+                    test_func = test_func()
+                    
                 try:
                     self._start_test(test_func,
                                      full_matrix=self.params.full_matrix,

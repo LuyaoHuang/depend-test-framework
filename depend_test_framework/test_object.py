@@ -90,8 +90,9 @@ class Mist(object):
     """
     TODO Need explain what's this
     """
-    def __init__(self, area, func):
+    def __init__(self, area, func, doc_func=None):
         self.func = func
+        self.doc_func = doc_func
         self._areas = {}
         for name, data in area.items():
             self.add_area_env(name, *data)
@@ -131,10 +132,10 @@ class Mist(object):
 class StaticMist(Mist):
     _area = dict()
     active = True
-    doc_func = None
+    _doc_func = None
 
     def __init__(self):
-        super(StaticMist, self).__init__(self._area, self.custom_func)
+        super(StaticMist, self).__init__(self._area, self.custom_func, self._doc_func)
 
     def custom_func(self):
         raise NotImplementedError

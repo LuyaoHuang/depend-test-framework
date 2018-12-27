@@ -37,6 +37,12 @@ class Runner(object):
         return ret
 
     def _get_doc_func(self, func):
+        # FIXME: this is check for mist class
+        # but this is a kind of hard coding and
+        # it is also very urgly
+        if getattr(func, 'doc_func', None):
+            return func.doc_func
+
         if getattr(func, '__name__', None):
             doc_func_name = func.__name__
         else:
