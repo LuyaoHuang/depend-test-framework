@@ -189,7 +189,7 @@ class Demo(BaseEngine):
         self.params.doc_logger = self.params.case_logger
         self.params.logger.info("=" * 8 + " %s " % title + "=" * 8)
         self.params.logger.info("")
-        i = 1
+        case_index = 1
 
         # create runner
         runner = Runner(self.params, self.checkpoints, self.doc_funcs,
@@ -211,14 +211,14 @@ class Demo(BaseEngine):
         extra_cases = {}
         while case_matrix:
             case = case_matrix.pop(0)
-            new_extra_cases, is_mist = runner.run_case(case, i, test_func,
+            new_extra_cases, is_mist = runner.run_case(case, case_index, test_func,
                                                        need_cleanup, only_doc=only_doc)
             if not full_matrix and not is_mist:
                 break
             for mist_name, cases in new_extra_cases.items():
                 extra_cases.setdefault(mist_name, []).extend(cases)
-            i += 1
-            if max_cases and i > max_cases:
+            case_index += 1
+            if max_cases and case_index > max_cases:
                 break
 
         LOGGER.info("find another %d extra cases", len(extra_cases))
@@ -226,12 +226,12 @@ class Demo(BaseEngine):
         runner.doc_logger = self.params.mist_logger
         for name, extra_case in extra_cases.items():
             for case in sorted(extra_case):
-                ret, is_mist = runner.run_case(case, i,
+                ret, is_mist = runner.run_case(case, case_index,
                                                need_cleanup=need_cleanup,
                                                only_doc=only_doc)
                 if is_mist:
                     raise NotImplementedError
-                i += 1
+                case_index += 1
                 if not full_matrix:
                     break
 
