@@ -11,19 +11,68 @@ import importlib
 from base_class import Params
 
 
+def _check_param(param, name, typ=None):
+    if not param:
+        raise KeyError("Need specify param %s" % name)
+
+    if typ and type(param) != typ:
+        raise TypeError("param %s type is not right, should be %s" % (name, typ))
+
+
+def _get_and_check(data, name, typ=None):
+    sub_data = data.get(name)
+    _check_param(sub_data, name, typ)
+    return sub_data
+
+
 def load_template(template_file):
+    """ Help to load a yaml template file which format like this:
+
+        params: // required, this means global params
+            test_case: True
+            full_matrix: True
+            guest_name: 'vm1'
+            guest_xml: 'guest.xml'
+            mist_rules: 'split'
+            max_cases: 30
+            drop_env: 3
+        
+        case: // required, this part for test case generate
+             - name: test cases name
+               params: // optional, will override global params
+                 restart_libvirtd: True
+                 curmem: 1048576
+                 mem_period: 2
+               params_matrix: // optional, will generate a matrix for each element in list
+                 memballoon:
+                   model:
+                     - 'none'
+                     - 'virtio'
+               test_objs: // required, the target want test
+                 - mem_test.virsh_set_period
+               modules: // required, will help to generate case
+                 - vm_basic
+                 - mem_test
+               doc-modules: // required, will help to generate case docuement
+                 - vm_basic_doc
+                 - mem_test_doc
+
+        And this function will return generater of params, modules, doc_modules, test_objs for each case
+    """
     with open(template_file) as fp:
         data = yaml.load(fp)
 
-    cases = data['case']
-    common_params = data['params']
+    # TODO: create a subclass of dict to make this check to be a method
+    cases = _get_and_check(data, 'case', list)
+    common_params = _get_and_check(data, 'params', dict)
+
     for case in cases:
         params = Params(common_params)
         if 'params' in case.keys():
             params.update(case['params'])
-        modules = list(load_modules(case['modules']))
-        doc_modules = list(load_modules(case['doc-modules']))
-        test_objs = list(load_objs(case['test_objs']))
+        modules = list(load_modules(_get_and_check(case, 'modules')))
+        doc_modules = list(load_modules(_get_and_check(case, 'doc-modules')))
+        test_objs = list(load_objs(_get_and_check(case, 'test_objs')))
         if 'params_matrix' in case.keys():
             for extra_params in full_permutations(case['params_matrix']):
                 new_params = Params(params)
@@ -72,4 +121,4 @@ def full_permutations(params_matrix):
     elif isinstance(params_matrix, (str, int, float)):
         return params_matrix
     else:
-        raise Exception
+        raise TypeError("Not support type %s" % type(params_matrix))
