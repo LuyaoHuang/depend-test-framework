@@ -307,7 +307,7 @@ class Demo(BaseEngine):
                 # FIXME: remove this
                 if StaticMist.issubclass(test_func):
                     test_func = test_func()
-                    
+
                 try:
                     self._start_test(test_func,
                                      full_matrix=self.params.full_matrix,
