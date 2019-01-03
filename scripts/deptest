@@ -5,10 +5,10 @@ TODO: only use for debugging
 import os
 import sys
 import yaml
-import itertools
-import copy
 import logging
 import contextlib
+import argparse
+import importlib
 
 # Simple magic for using scripts within a source tree
 BASEDIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -18,8 +18,7 @@ if os.path.isdir(os.path.join(BASEDIR, 'depend_test_framework')):
 
 from depend_test_framework.engine import Demo
 from depend_test_framework.base_class import Params
-import argparse
-import importlib
+from depend_test_framework.client import load_template, load_modules, load_objs
 
 
 def parse_cmd():
@@ -56,25 +55,10 @@ def parse_cmd():
     return args
 
 
-def load_modules(modules_list):
-    # TODO
-    cmd_folder = os.path.realpath('.')
-    sys.path.insert(0, cmd_folder)
-    for module in modules_list:
-        yield importlib.import_module(module)
-
-
 def load_module(module_name):
     cmd_folder = os.path.realpath('.')
     sys.path.insert(0, cmd_folder)
     return importlib.import_module(module_name)
-
-
-def load_objs(test_objs_list):
-    # TODO: only support 2 layer
-    for test_obj in test_objs_list:
-        tmp_module = importlib.import_module(test_obj.split('.')[0])
-        yield getattr(tmp_module, test_obj.split('.')[1], None)
 
 
 def load_params(params_str, params_conf=None):
@@ -94,34 +78,6 @@ def load_params(params_str, params_conf=None):
     return params
 
 
-# Maybe a better helper
-def full_permutations(params_matrix):
-    if isinstance(params_matrix, dict):
-        val_pt = []
-        keys = params_matrix.keys()
-        for key in keys:
-            ret = full_permutations(params_matrix[key])
-            if isinstance(ret, list):
-                val_pt.append(ret)
-            else:
-                val_pt.append([ret])
-        pmt = itertools.product(*val_pt)
-        return [Params(zip(keys, i)) for i in pmt]
-    elif isinstance(params_matrix, list):
-        ret = []
-        for data in params_matrix:
-            tmp = full_permutations(data)
-            if isinstance(tmp, list):
-                ret.extend(tmp)
-            else:
-                ret.append(tmp)
-        return ret
-    elif isinstance(params_matrix, (str, int, float)):
-        return params_matrix
-    else:
-        raise Exception
-
-
 @contextlib.contextmanager
 def change_work_path(params):
     old_path = os.path.realpath(os.curdir)
@@ -137,29 +93,6 @@ def change_work_path(params):
     yield
     if path:
         os.chdir(old_path)
-
-
-# This will be a good choise
-def load_template(template_file):
-    with open(template_file) as fp:
-        data = yaml.load(fp)
-
-    cases = data['case']
-    common_params = data['params']
-    for case in cases:
-        params = Params(common_params)
-        if 'params' in case.keys():
-            params.update(case['params'])
-        modules = list(load_modules(case['modules']))
-        doc_modules = list(load_modules(case['doc-modules']))
-        test_objs = list(load_objs(case['test_objs']))
-        if 'params_matrix' in case.keys():
-            for extra_params in full_permutations(case['params_matrix']):
-                new_params = Params(params)
-                new_params.update(extra_params)
-                yield new_params, modules, doc_modules, copy.deepcopy(test_objs)
-        else:
-            yield params, modules, doc_modules, copy.deepcopy(test_objs)
 
 
 def main():
@@ -190,6 +123,7 @@ def main():
             d = Demo(list(modules_gen), test_funcs=list(test_objs_gen),
                      doc_modules=list(doc_modules), hook_module=hook_module)
             d.run(params)
+
 
 if __name__ == '__main__':
     main()
