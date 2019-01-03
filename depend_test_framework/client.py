@@ -122,3 +122,25 @@ def full_permutations(params_matrix):
         return params_matrix
     else:
         raise TypeError("Not support type %s" % type(params_matrix))
+
+
+class ParamDoc(object):
+    """ Help to generate params document
+    """
+    _objs = dict()
+
+    def __init__(self, name, doc):
+        self.name = name
+        self.doc = doc
+
+    @classmethod
+    def gen_document(cls, module_list):
+        pass
+
+    @classmethod
+    def collect_param_doc(cls, module_list):
+        pass
+
+    @classmethod
+    def dump_to_yaml(cls):
+        pass
