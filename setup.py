@@ -16,10 +16,6 @@ REQUIREMENTS = [
     'tensorflow',
 ]
 
-DATA_FILES = [
-    ('share/depend_test_framework/examples', glob.glob('examples/*'))
-]
-
 CHECK_FILES = [
     'scripts/deptest',
     'depend_test_framework',
@@ -91,8 +87,7 @@ if __name__ == '__main__':
         description='A test framework which use dependency of test step to generate test case',
         scripts=glob.glob('scripts/*'),
         tests_require=['pytest'],
-        packages=find_packages(exclude=['tests']),
-        data_files=DATA_FILES,
+        packages=find_packages(exclude=['tests', 'examples']),
         cmdclass={'test': PyTest, 'syntax_check': SyntaxCheck},
         install_requires=REQUIREMENTS,
     )
