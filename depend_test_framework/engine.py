@@ -5,15 +5,15 @@ import inspect
 import random
 import contextlib
 
-from base_class import Container, Params, get_func_params_require
-from test_object import is_TestObject, is_Action, is_CheckPoint, is_Hybrid, StaticMist
-from dependency import is_Graft, get_all_depend, Provider, Consumer, Graft
-from log import get_logger, get_file_logger, make_timing_logger
-from case_generator import DependGraphCaseGenerator
-from runner_handlers import MistsHandler
-from runners import Runner
-from learning import StepsSeqScorer
-from hook import EnvHook, CaseHook
+from .base_class import Container, Params, get_func_params_require
+from .test_object import is_TestObject, is_Action, is_CheckPoint, is_Hybrid, StaticMist
+from .dependency import is_Graft, get_all_depend, Provider, Consumer, Graft
+from .log import get_logger, get_file_logger, make_timing_logger
+from .case_generator import DependGraphCaseGenerator
+from .runner_handlers import MistsHandler
+from .runners import Runner
+from .learning import StepsSeqScorer
+from .hook import EnvHook, CaseHook
 
 LOGGER = get_logger(__name__)
 time_log = make_timing_logger(LOGGER)
@@ -236,7 +236,7 @@ class Demo(BaseEngine):
                     break
 
     def _create_training_data(self, cases, test_func):
-        # TODO: TMP
+        # TODO: Only for testing
         def score_a(case):
             if case.step_num >= 13:
                 score = 1

@@ -4,7 +4,7 @@ Some base classes
 import types
 from functools import partial
 
-from log import get_logger
+from .log import get_logger
 
 LOGGER = get_logger(__name__)
 

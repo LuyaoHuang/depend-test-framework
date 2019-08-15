@@ -6,8 +6,8 @@ import numpy as np
 import random
 import pickle
 
-from log import get_logger
-from algorithms import LSTM
+from .log import get_logger
+from .algorithms import LSTM
 
 LOGGER = get_logger(__name__)
 

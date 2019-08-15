@@ -4,13 +4,14 @@ Helper classes to help generate case
 
 import itertools
 import random
+
 from progressbar import ProgressBar, SimpleProgress, Counter, Timer
 
-from log import get_logger
-from env import Env
-from utils import pretty
-from case import Case
-from algorithms import route_permutations
+from .log import get_logger
+from .env import Env
+from .utils import pretty
+from .case import Case
+from .algorithms import route_permutations
 
 LOGGER = get_logger(__name__)
 
@@ -124,7 +125,10 @@ class DependGraphCaseGenerator(object):
         nodes = [start_node]
         widgets = ['Processed: ', Counter(), ' nodes (', Timer(), ')']
         LOGGER.info("Start gen depend map...")
-        pbar = ProgressBar(widgets=widgets, max_value=100000)
+        try:
+            pbar = ProgressBar(widgets=widgets, max_value=100000)
+        except TypeError:
+            pbar = ProgressBar(widgets=widgets, maxval=100000)
         pbar.start()
         while nodes:
             node = nodes.pop()
@@ -135,6 +139,7 @@ class DependGraphCaseGenerator(object):
                 if drop_env and len(new_node) > drop_env:
                     continue
                 if new_node not in dep_graph.keys():
+                    LOGGER.debug('New Node: %s func: %s', new_node, func)
                     dep_graph.setdefault(new_node, {})
                     nodes.append(new_node)
                 data = dep_graph[node]
@@ -153,7 +158,7 @@ class DependGraphCaseGenerator(object):
         if not self.dep_graph:
             return
 
-        self._nodes_map = self.dep_graph.keys()
+        self._nodes_map = list(self.dep_graph.keys())
         v_graph = {}
 
         for node in self._nodes_map:

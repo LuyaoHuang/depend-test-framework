@@ -2,10 +2,10 @@
 Helper classes to help run test case
 """
 
-from log import get_logger
-from env import Env
-from dependency import get_all_depend, Consumer
-from test_object import TestEndException
+from .log import get_logger
+from .env import Env
+from .dependency import get_all_depend, Consumer
+from .test_object import TestEndException
 
 LOGGER = get_logger(__name__)
 

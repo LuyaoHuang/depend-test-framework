@@ -3,9 +3,9 @@ Classes that help to identify the dependency between test objects
 """
 import copy
 
-from base_class import Entrypoint, check_func_entrys, get_entrypoint
+from .base_class import Entrypoint, check_func_entrys, get_entrypoint
 
-from log import get_logger
+from .log import get_logger
 
 LOGGER = get_logger(__name__)
 
@@ -47,8 +47,8 @@ class Graft(Entrypoint):
         sub_env = env.get_data(self.src)
         new_env = copy.deepcopy(sub_env)
         env.set_data(self.tgt, new_env)
-        if not sub_env.data:
-            sub_env.data = True
+        if not new_env.data:
+            new_env.data = True
 
     def gen_trans_depend(self, dep):
         # TODO this is a work around

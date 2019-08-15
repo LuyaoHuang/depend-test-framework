@@ -1,10 +1,10 @@
 """
 Test object related class
 """
-from base_class import Entrypoint, check_func_entrys
-from env import Env
+from .base_class import Entrypoint, check_func_entrys
+from .env import Env
 
-from log import get_logger
+from .log import get_logger
 
 LOGGER = get_logger(__name__)
 

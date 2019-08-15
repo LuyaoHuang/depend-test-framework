@@ -2,7 +2,10 @@
 TODO
 """
 
-from base import route_permutations, hashable_list
+from .base import route_permutations, hashable_list
+from depend_test_framework.log import get_logger
+
+LOGGER = get_logger(__name__)
 
 try:
     from DL import LSTM

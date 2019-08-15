@@ -5,9 +5,9 @@ Helpers which help handle the runner result and extend the runner function
 import itertools
 import contextlib
 
-from test_object import MistClearException, TestEndException, StaticMist, MistDeadEndException
-from case import Case
-from log import get_logger
+from .test_object import MistClearException, TestEndException, StaticMist, MistDeadEndException
+from .case import Case
+from .log import get_logger
 
 LOGGER = get_logger(__name__)
 

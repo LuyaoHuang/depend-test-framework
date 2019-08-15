@@ -10,7 +10,7 @@ def run_cmd(cmd):
 def pretty(d, indent=0):
     ret = ""
     ret += ('\t' * indent + '{\n')
-    for key, value in d.iteritems():
+    for key, value in d.items():
         ret += ('\t' * indent + str(key) + ' :\n')
         if isinstance(value, dict):
             ret += pretty(value, indent + 1)

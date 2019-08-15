@@ -8,7 +8,7 @@ import yaml
 import copy
 import importlib
 
-from base_class import Params
+from .base_class import Params
 
 
 def _check_param(param, name, typ=None):

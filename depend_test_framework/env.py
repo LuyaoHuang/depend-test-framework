@@ -4,8 +4,8 @@ A class help to create and manage a virtual test env
 import contextlib
 import copy
 
-from log import get_logger
-from dependency import Consumer, Provider, Cut, Graft, get_all_depend
+from .log import get_logger
+from .dependency import Consumer, Provider, Cut, Graft, get_all_depend
 
 LOGGER = get_logger(__name__)
 
