@@ -69,6 +69,20 @@ class Cut(Entrypoint):
         sub_env.data = False
 
 
+class Migrate(Graft):
+    """
+    TODO
+    """
+    def effect_env(self, env):
+        sub_env = env.get_data(self.src)
+        new_env = copy.deepcopy(sub_env)
+        env.set_data(self.tgt, new_env)
+        if not new_env.data:
+            new_env.data = True
+        sub_env.childs = {}
+        sub_env.data = False
+
+
 class Provider(Dependency):
     CLEAR = "clear"
     SET = "set"

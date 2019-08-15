@@ -72,6 +72,9 @@ class DependGraphCaseGenerator(object):
         target_env = Env.gen_require_env(test_func)
         for tgt_env in self.find_suit_envs(target_env):
             cases = self.compute_route_permutations(src_env, tgt_env)
+            if not tgt_env.gen_transfer_env(test_func):
+                LOGGER.info('Cannot use env %s for testing', tgt_env)
+                continue
             cleanup_steps = None
             if need_cleanup:
                 cleanups = self.compute_route_permutations(src_env, tgt_env, True)
@@ -128,12 +131,15 @@ class DependGraphCaseGenerator(object):
         try:
             pbar = ProgressBar(widgets=widgets, max_value=100000)
         except TypeError:
+            # python3 ProgressBar
             pbar = ProgressBar(widgets=widgets, maxval=100000)
         pbar.start()
         while nodes:
             node = nodes.pop()
+            LOGGER.debug('Start check node %s', node)
             for func in test_funcs:
                 new_node = node.gen_transfer_env(func)
+                LOGGER.debug('posible New Node: %s func: %s', new_node, func)
                 if new_node is None:
                     continue
                 if drop_env and len(new_node) > drop_env:
