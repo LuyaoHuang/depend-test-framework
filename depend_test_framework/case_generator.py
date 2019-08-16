@@ -77,7 +77,8 @@ class DependGraphCaseGenerator(object):
                 continue
             cleanup_steps = None
             if need_cleanup:
-                cleanups = self.compute_route_permutations(src_env, tgt_env, True)
+                new_tgt_env = tgt_env.gen_transfer_env(test_func)
+                cleanups = self.compute_route_permutations(src_env, new_tgt_env, True)
                 if cleanups:
                     if random_cleanup:
                         cleanup_steps = random.choice(cleanups)
