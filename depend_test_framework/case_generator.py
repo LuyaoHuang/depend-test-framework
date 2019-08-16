@@ -33,16 +33,20 @@ class DependGraphCaseGenerator(object):
         self._v_graph = None
 
     def find_suit_envs(self, env):
+        env_list = env if type(env) is list else [env]
         if not self.dep_graph:
             raise Exception('Need gen depend graph first')
-        tmp_list = []
-        for key_env in self.dep_graph.keys():
-            if env <= key_env:
-                tmp_list.append(key_env)
+        env_record = []
+        for tmp_env in env_list:
+            tmp_list = []
+            for key_env in self.dep_graph.keys():
+                if tmp_env <= key_env:
+                    tmp_list.append(key_env)
 
-        for i, tgt_env in enumerate(sorted(tmp_list, key=len)):
-            if i <= self._suit_env_limit:
-                yield tgt_env
+            for i, tgt_env in enumerate(sorted(tmp_list, key=len)):
+                if i <= self._suit_env_limit and tgt_env not in env_record:
+                    env_record.append(tgt_env)
+                    yield tgt_env
 
     def compute_route_permutations(self, src_env, target_env, cleanup=False):
         if not self.dep_graph:
@@ -69,7 +73,7 @@ class DependGraphCaseGenerator(object):
     def gen_cases(self, test_func, random_cleanup=False, need_cleanup=False, src_env=None):
         if not src_env:
             src_env = Env()
-        target_env = Env.gen_require_env(test_func)
+        target_env = list(Env.gen_require_env(test_func))
         for tgt_env in self.find_suit_envs(target_env):
             cases = self.compute_route_permutations(src_env, tgt_env)
             if not tgt_env.gen_transfer_env(test_func):

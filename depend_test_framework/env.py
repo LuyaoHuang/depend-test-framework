@@ -3,6 +3,7 @@ A class help to create and manage a virtual test env
 """
 import contextlib
 import copy
+import itertools
 
 from .log import get_logger
 from .dependency import Consumer, Provider, Cut, Graft, get_all_depend
@@ -105,7 +106,16 @@ class Env(object):
         else:
             raise NotImplementedError
 
-        ret = self._get_data_from_path(depend.env_depend)
+        # TODO: support more kind of operation
+        paths = depend.env_depend.split('|')
+        for path in paths:
+            if self._valid_single_require(path, require):
+                return True
+
+        return False
+
+    def _valid_single_require(self, path, require):
+        ret = self._get_data_from_path(path)
         if ret is not None and (ret.struct_table() != '{}' or ret.data):
             return require
         else:
@@ -140,11 +150,16 @@ class Env(object):
         return required env
         """
         cons = get_all_depend(func, depend_cls=Consumer)
-        env = cls()
+        env_paths = []
         for con in cons:
             if con.type == Consumer.REQUIRE:
-                env._set_data_from_path(con.env_depend, True)
-        return env
+                env_paths.append(con.env_depend.split('|'))
+        all_paths = itertools.product(*env_paths)
+        for paths in all_paths:
+            env = cls()
+            for path in paths:
+                env._set_data_from_path(path, True)
+            yield env
 
     def __reduce__(self):
         return self.__reduce_ex__(None)
