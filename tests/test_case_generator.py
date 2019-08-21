@@ -87,7 +87,7 @@ def test_gen_cases_special_method():
         hit_start = 0
         for step in case.steps:
             e = e.gen_transfer_env(step)
-            if e >= start_env:
+            if e >= start_env[0]:
                 hit_start += 1
         assert e >= end_env
         assert hit_start > 0
