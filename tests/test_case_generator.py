@@ -79,7 +79,7 @@ def test_gen_cases_special_method():
 
     src_env = Env()
     start_env = list(Env.gen_require_env(mock_func1))
-    end_env = list(Env.gen_require_env(mock_func6))
+    end_env = Env.gen_require_env(mock_func6)
     cases = list(case_generator.gen_cases_special(src_env, start_env, end_env))
     assert len(cases) == 17
     for case in cases:
