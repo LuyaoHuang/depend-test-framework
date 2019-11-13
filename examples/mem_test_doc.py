@@ -40,7 +40,7 @@ def host_hugepage_config(params, env):
             params.doc_logger.info(RESULT + "error: Failed to start domain %s" % params.guest_name)
             params.doc_logger.info("error: internal error hugepages are disabled by administrator config")
             raise MistDeadEndException()
-        return Mist({'active': (start, end)}, mist_host_hugepage)
+        return Mist({'active': (start, end)}, None, mist_host_hugepage)
 
 
 def guest_hugepage_settings(params, env):
@@ -159,7 +159,7 @@ def virsh_memtune(params, env):
             func(params, env)
             raise MistClearException
 
-        return Mist({"x": (start, end)}, restart_and_memtune)
+        return Mist({"x": (start, end)}, None, restart_and_memtune)
 
 
 def virsh_memtune_conf(params, env):
