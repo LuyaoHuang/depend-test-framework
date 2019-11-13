@@ -87,7 +87,7 @@ class DependGraphCaseGenerator(object):
                     if random_cleanup:
                         cleanup_steps = random.choice(cleanups)
                     else:
-                        cleanup_steps = min(cleanups)
+                        cleanup_steps = min(cleanups, key=len)
                     cleanup_steps = self.restore_onigin_data(cleanup_steps)
 
             LOGGER.debug("env: %s case num: %d" % (tgt_env, len(cases)))
