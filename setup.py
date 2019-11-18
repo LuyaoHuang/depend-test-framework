@@ -56,7 +56,7 @@ class SyntaxCheck(Command):
     def run(self):
         output_format = sys.stdout.isatty() and "colorized" or "text"
 
-        print "running pep8"
+        print("running pep8")
         cmd = "pep8 "
         cmd += "--config tests/pep8.cfg "
         cmd += " ".join(CHECK_FILES)
@@ -65,7 +65,7 @@ class SyntaxCheck(Command):
         if r != 0:
             sys.exit(r)
 
-        print "running pylint"
+        print("running pylint")
         cmd = "pylint "
         cmd += "--rcfile tests/pylint.cfg "
         cmd += "--output-format=%s " % output_format
