@@ -1,0 +1,13 @@
+params:
+    test_case: False
+    full_matrix: True
+    cleanup: True
+
+case:
+  - name: test hello world
+    params:
+      file_path: '/tmp/hello_world.file'
+    test_objs:
+      - hello_world.check_hello_world_file
+    modules:
+      - hello_world
