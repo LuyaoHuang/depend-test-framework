@@ -1,6 +1,8 @@
 """
 Test object related class
 """
+import enum
+
 from .base_class import Entrypoint, check_func_entrys
 from .env import Env
 
@@ -84,6 +86,25 @@ class MistClearException(Exception):
     """
     This means the mist have been clear
     """
+
+
+class CleanUpMethod(enum.Enum):
+    # Failure not effect env, runner will cleanup base on new env
+    not_effect = 0
+    # Env already fallback in test object, runner will clean up base on previous step env
+    previous_step = 1
+    # Use custom clean up function
+    custom = 2
+
+
+class ObjectFailedException(Exception):
+    """
+    This means the test object failed for some reason
+    And pass cleanup_method let runner know how to clean up
+    """
+    def __init__(self, cleanup_method=None, *args):
+        super(ObjectFailedException, self).__init__(*args)
+        self.cleanup_method = cleanup_method or CleanUpMethod.not_effect
 
 
 class Mist(object):

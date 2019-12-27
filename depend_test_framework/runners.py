@@ -5,7 +5,7 @@ Helper classes to help run test case
 from .log import get_logger
 from .env import Env
 from .dependency import get_all_depend, Consumer
-from .test_object import TestEndException
+from .test_object import TestEndException, ObjectFailedException, CleanUpMethod
 
 LOGGER = get_logger(__name__)
 
@@ -15,6 +15,8 @@ class Runner(object):
                  test_logger, doc_logger, env=None):
         self.params = params
         self.env = env or Env()
+        # this new env only used when test object failed
+        self._new_env = None
         self._checkpoints = checkpoints
         self.test_logger = test_logger
         self.doc_logger = doc_logger
@@ -65,7 +67,7 @@ class Runner(object):
         if not doc_func and only_doc:
             raise Exception("Not define %s name in doc modules" % func)
         LOGGER.debug("Start transfer env, func: %s env: %s", func, self.env)
-        new_env = self.env.gen_transfer_env(func)
+        self._new_env = new_env = self.env.gen_transfer_env(func)
         if new_env is None:
             raise Exception("Fail to gen transfer env")
 
@@ -125,15 +127,23 @@ class Runner(object):
                     extra_cases.setdefault(cases_name, []).append(case)
         except TestEndException:
             # TODO: maybe need clean up
-            pass
-        else:
-            if need_cleanup:
-                if not case.cleanups:
-                    LOGGER.info("Cannot find clean up way")
-                    LOGGER.info("Current Env: %s", self.env)
-                else:
-                    for func in case.clean_ups:
-                        step_index = self.run_one_step(func, step_index=step_index, only_doc=only_doc)
+            need_cleanup = False
+        except ObjectFailedException as e:
+            # TODO: maybe need clean up
+            LOGGER.error('Case %s failed at step %s: %s', case, step_index, e)
+            if e.cleanup_method is CleanUpMethod.not_effect:
+                # In this case, we don't need do anything
+                pass
+            else:
+                # TODO
+                raise NotImplementedError
+        if need_cleanup:
+            if not case.cleanups:
+                LOGGER.info("Cannot find clean up way")
+                LOGGER.info("Current Env: %s", self.env)
+            else:
+                for func in case.clean_ups:
+                    step_index = self.run_one_step(func, step_index=step_index, only_doc=only_doc)
         # TODO: remove this
         self.env = Env()
         return extra_cases, have_extra_cases
