@@ -71,7 +71,10 @@ def load_template(template_file):
         if 'params' in case.keys():
             params.update(case['params'])
         modules = list(load_modules(_get_and_check(case, 'modules')))
-        doc_modules = list(load_modules(_get_and_check(case, 'doc-modules')))
+        if 'doc-modules' in case.keys():
+            doc_modules = list(load_modules(_get_and_check(case, 'doc-modules')))
+        else:
+            doc_modules = []
         test_objs = list(load_objs(_get_and_check(case, 'test_objs')))
         if 'params_matrix' in case.keys():
             for extra_params in full_permutations(case['params_matrix']):
