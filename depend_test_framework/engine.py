@@ -266,7 +266,7 @@ class Demo(BaseEngine):
         doc_path = 'doc.file' if not doc_file else doc_file
         run_log_path = doc_path + ".log"
         self.params.logger = get_file_logger(run_log_path, run_log_path)
-        if self.params.mist_rules == 'both':
+        if self.params.mist_rules in ('both', None):
             logger = get_file_logger(doc_path, doc_path)
             self.params.case_logger = logger
             self.params.mist_logger = logger
