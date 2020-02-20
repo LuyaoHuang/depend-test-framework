@@ -72,6 +72,9 @@ class StepsSeqScorer(object):
                 ret_arr = x
             else:
                 ret_arr = np.append(ret_arr, x, axis=0)
+        # TODO: this make all input have the same length
+        if len(ret_arr) > self._time_steps:
+            raise Exception("This array size %d is bigger than %d" % (len(ret_arr), self._time_steps))
         while len(ret_arr) < self._time_steps:
             x = np.zeros((1, self._x_size))
             ret_arr = np.append(ret_arr, x, axis=0)

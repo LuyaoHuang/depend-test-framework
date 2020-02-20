@@ -51,6 +51,8 @@ def parse_cmd():
                         help='Need mock all test steps')
     parser.add_argument('--debug', dest='debug', action='store_true',
                         help='Enable debug log')
+    parser.add_argument('--ai-test', dest='ai_test', action='store_true',
+                        help='Do a simple AI test base on generated cases')
     args = parser.parse_args()
     return args
 

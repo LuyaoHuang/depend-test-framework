@@ -5,6 +5,7 @@ import tensorflow as tf
 import numpy
 import random
 import os
+from tensorflow.contrib import rnn
 
 from depend_test_framework.log import get_logger
 

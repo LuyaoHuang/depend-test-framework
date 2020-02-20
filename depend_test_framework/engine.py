@@ -177,9 +177,17 @@ class Demo(BaseEngine):
         return extra_handler
 
     def _training(self, case_matrix, test_func):
-        datas = self._create_training_data(case_matrix, test_func)
-        lrn_program = StepsSeqScorer(5, func_map={func: i for i, func in enumerate(sorted(self.all_funcs))})
-        lrn_program.train_and_test(list(datas))
+        def _get_max_len(datas):
+            max_len = 0
+            for func_seq, _ in datas:
+                if len(func_seq) > max_len:
+                    max_len = len(func_seq)
+            return max_len
+
+        datas = list(self._create_training_data(case_matrix, test_func))
+        max_len = _get_max_len(datas)
+        lrn_program = StepsSeqScorer(5, func_map={func: i for i, func in enumerate(sorted(self.all_funcs))}, time_steps=max_len)
+        lrn_program.train_and_test(datas)
         # lrn_program.test(list(datas))
 
     def _start_test(self, test_func, need_cleanup=False,
@@ -203,9 +211,10 @@ class Demo(BaseEngine):
 
         LOGGER.info('Find %d valid cases', len(case_matrix))
 
-        # training part
-        # self._training(case_matrix, test_func)
-        # return
+        if self.params.ai_test:
+            # training part
+            self._training(case_matrix, test_func)
+            return
 
         # TODO use a class to be a cases container
         extra_cases = {}
