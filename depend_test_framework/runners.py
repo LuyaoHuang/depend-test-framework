@@ -143,7 +143,11 @@ class Runner(object):
                 LOGGER.info("Current Env: %s", self.env)
             else:
                 for func in cleanup_steps:
-                    step_index = self.run_one_step(func, step_index=step_index, only_doc=only_doc)
+                    try:
+                        step_index = self.run_one_step(func, step_index=step_index, only_doc=only_doc)
+                    except Exception as e:
+                        LOGGER.debug("Failed to run clean up steps %s: %s", func, e)
+                        step_index += 1
         # TODO: remove this
         self.env = Env()
         return extra_cases, have_extra_cases
