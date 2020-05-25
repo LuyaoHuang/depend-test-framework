@@ -7,7 +7,7 @@ import contextlib
 
 from .base_class import Container, Params, get_func_params_require
 from .test_object import is_TestObject, is_Action, is_CheckPoint, is_Hybrid, StaticMist
-from .dependency import is_Graft, get_all_depend, Provider, Consumer, Graft
+from .dependency import is_Graft, get_all_depend, Provider, Consumer, Graft, is_ExtraDepend
 from .log import get_logger, get_file_logger, make_timing_logger
 from .case_generator import DependGraphCaseGenerator
 from .runner_handlers import MistsHandler
@@ -41,6 +41,7 @@ class BaseEngine(object):
         self.case_hooks = Container()
         # TODO: not use dict
         self.doc_funcs = {}
+        self.extra_depends = {}
         self.params = Params()
         # TODO: support more case generator
         self.case_gen = DependGraphCaseGenerator()
@@ -64,9 +65,17 @@ class BaseEngine(object):
             for _, func in inspect.getmembers(module, is_Graft):
                 self.grafts |= Container(get_all_depend(func, depend_cls=Graft))
 
+            for _, inst in inspect.getmembers(module, is_ExtraDepend):
+                if self.extra_depends.get(inst.func_name):
+                    self.extra_depends[inst.func_name] |= inst.depends
+                else:
+                    self.extra_depends[inst.func_name] = inst.depends
+
         for func in self.all_funcs:
+            name = get_name(func)
+            # TODO: don't direct access private value
+            func._test_entry |= self.extra_depends.get(name, set())
             for module in self.doc_modules:
-                name = get_name(func)
                 if getattr(module, name, None):
                     self.doc_funcs[name] = getattr(module, name)
                     break

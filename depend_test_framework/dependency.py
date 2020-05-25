@@ -124,6 +124,19 @@ class Consumer(Dependency):
         raise Exception
 
 
+class ExtraDepend(object):
+    def __init__(self, function_name, depend_list):
+        self.func_name = function_name
+        self.depends = set(depend_list)
+
+    def __repr__(self):
+        return "<ExtraDepend func_name='%s' at 0x%xd>" % self.func_name
+
+
+def is_ExtraDepend(obj):
+    return isinstance(obj, ExtraDepend)
+
+
 def is_Graft(obj):
     return check_func_entrys(obj, Graft)
 
