@@ -125,9 +125,9 @@ class Runner(object):
                 have_extra_cases = True
                 for cases_name, case in tmp_cases:
                     extra_cases.setdefault(cases_name, []).append(case)
+            cleanup_steps = case.cleanups
         except TestEndException:
-            # TODO: maybe need clean up
-            need_cleanup = False
+            cleanup_steps = self._extra_handler.gen_cleanups(self.env, Env())
         except ObjectFailedException as e:
             # TODO: maybe need clean up
             LOGGER.error('Case %s failed at step %s: %s', case, step_index, e)
@@ -138,11 +138,11 @@ class Runner(object):
                 # TODO
                 raise NotImplementedError
         if need_cleanup:
-            if not case.cleanups:
+            if not cleanup_steps:
                 LOGGER.info("Cannot find clean up way")
                 LOGGER.info("Current Env: %s", self.env)
             else:
-                for func in case.clean_ups:
+                for func in cleanup_steps:
                     step_index = self.run_one_step(func, step_index=step_index, only_doc=only_doc)
         # TODO: remove this
         self.env = Env()

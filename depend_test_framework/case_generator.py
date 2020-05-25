@@ -79,16 +79,12 @@ class DependGraphCaseGenerator(object):
             if not tgt_env.gen_transfer_env(test_func):
                 LOGGER.info('Cannot use env %s for testing', tgt_env)
                 continue
-            cleanup_steps = None
+
             if need_cleanup:
                 new_tgt_env = tgt_env.gen_transfer_env(test_func)
-                cleanups = self.compute_route_permutations(src_env, new_tgt_env, True)
-                if cleanups:
-                    if random_cleanup:
-                        cleanup_steps = random.choice(cleanups)
-                    else:
-                        cleanup_steps = min(cleanups, key=len)
-                    cleanup_steps = self.restore_onigin_data(cleanup_steps)
+                cleanup_steps = self.gen_cleanups(new_tgt_env, src_env, random_cleanup)
+            else:
+                cleanup_steps = None
 
             LOGGER.debug("env: %s case num: %d" % (tgt_env, len(cases)))
             for case in cases:
@@ -96,6 +92,15 @@ class DependGraphCaseGenerator(object):
                 case_obj = Case(tmp_case, tgt_env=tgt_env,
                                 cleanups=cleanup_steps)
                 yield case_obj
+
+    def gen_cleanups(self, src_env, tgt_env, random_cleanup=False):
+        cleanups = self.compute_route_permutations(tgt_env, src_env, True)
+        if cleanups:
+            if random_cleanup:
+                cleanup_steps = random.choice(cleanups)
+            else:
+                cleanup_steps = min(cleanups, key=len)
+            return self.restore_onigin_data(cleanup_steps)
 
     def gen_cases_special(self, src_env, start_env, end_env):
         """

@@ -152,6 +152,9 @@ class MistsHandler(object):
             # TODO: check if it is func
             return self._case_gen.gen_cases(test_func, need_cleanup=need_cleanup)
 
+    def gen_cleanups(self, src_env, tgt_env):
+        return self._case_gen.gen_cleanups(src_env, tgt_env)
+
 
 class MistsContainer(list):
     """
