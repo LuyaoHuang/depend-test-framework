@@ -5,7 +5,7 @@ Helpers which help handle the runner result and extend the runner function
 import itertools
 import contextlib
 
-from .test_object import MistClearException, TestEndException, StaticMist, MistDeadEndException
+from .test_object import MistClearException, TestEndException, StaticMist, MistDeadEndException, is_TestObject
 from .case import Case
 from .log import get_logger
 
@@ -91,6 +91,8 @@ class MistsHandler(object):
         else:
             self.desc_logger(test_func, only_doc)
 
+            if is_TestObject(test_func):
+                test_func = test_func()
             new_mist = test_func(params, tgt_env)
 
         if new_mist and mists is not None:
