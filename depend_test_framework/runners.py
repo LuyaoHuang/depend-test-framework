@@ -125,13 +125,9 @@ class Runner(object):
                 have_extra_cases = True
                 for cases_name, case in tmp_cases:
                     extra_cases.setdefault(cases_name, []).append(case)
-            cleanup_steps = case.cleanups
+            cleanup_steps = case.clean_ups
         except TestEndException:
-            cleanup_case = self._extra_handler.gen_cleanups(self.env, Env())
-            if cleanup_case:
-                cleanup_steps = cleanup_case.steps
-            else:
-                cleanup_steps = None
+            cleanup_steps = self._extra_handler.gen_cleanups(self.env, Env())
         except ObjectFailedException as e:
             # TODO: maybe need clean up
             LOGGER.error('Case %s failed at step %s: %s', case, step_index, e)
