@@ -72,10 +72,36 @@ class Container(set):
 
 
 class ParamsRequire(Entrypoint):
+    SUPPORT_MATCH = ('=')
+
     def __init__(self, param_depend):
         self.param_depend = Params()
+        self.custom_match = dict()
         for key in param_depend:
-            self.param_depend[key] = True
+            if type(key) is str:
+                self.param_depend[key] = True
+            elif type(key) is tuple:
+                # (key, '=', value)
+                if len(key) is not 3:
+                    raise ValueError('Custom match ParamsRequire should be a 3 length tuple')
+                self.param_depend[key[0]] = key[2]
+                self.custom_match[key[0]] = key[1]
+            else:
+                raise NotImplementedError
+
+    def valid_params(self, params):
+        if not params >= self.param_depend:
+            return False
+        if not self.custom_match:
+            return True
+        for key, match in self.custom_match.items():
+            if match is '=':
+                if self.param_depend[key] != params[key]:
+                    return False
+            else:
+                raise NotImplementedError
+
+        return True
 
 
 class Params(dict):

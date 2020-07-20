@@ -102,10 +102,7 @@ class BaseEngine(object):
         param_req = get_func_params_require(func)
         if not param_req:
             return False
-        if not self.params >= param_req.param_depend:
-            return True
-        else:
-            return False
+        return not param_req.valid_params(self.params)
 
     def filter_all_func_custom(self, cb):
         self.filter_func_custom(self.actions, cb)
