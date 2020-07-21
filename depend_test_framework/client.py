@@ -6,6 +6,7 @@ import sys
 import os
 import yaml
 import copy
+import random
 import importlib
 
 from .base_class import Params
@@ -48,6 +49,10 @@ def load_template(template_file):
                    model:
                      - 'none'
                      - 'virtio'
+               random_params:
+                 curmem:
+                   1048576: 0.2
+                   524288: 0.8
                test_objs: // required, the target want test
                  - mem_test.virsh_set_period
                modules: // required, will help to generate case
@@ -76,6 +81,12 @@ def load_template(template_file):
         else:
             doc_modules = []
         test_objs = list(load_objs(_get_and_check(case, 'test_objs')))
+        if 'random_params' in case.keys():
+            for param_name, tmp_data in case['random_params'].items():
+                for value, rate in tmp_data.items():
+                    if random.random() < float(rate):
+                        break
+                params[param_name] = value
         if 'params_matrix' in case.keys():
             for extra_params in full_permutations(case['params_matrix']):
                 new_params = Params(params)
