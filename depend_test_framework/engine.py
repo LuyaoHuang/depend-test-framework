@@ -306,7 +306,7 @@ class Demo(BaseEngine):
 
     def run(self, params, doc_file=None):
         self.params = params
-        LOGGER.debug(self.params.pretty_display())
+        LOGGER.info("Parmeters: %s", self.params)
         # TODO
         with self.preprare_logger(doc_file):
             self.prepare()
