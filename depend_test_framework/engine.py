@@ -162,10 +162,11 @@ class Demo(BaseEngine):
         if not self.test_modules and not self.test_funcs:
             raise Exception('Need give a test object !')
         if self.test_modules:
-            test_funcs = []
-            for module in self.test_modules:
-                for _, func in inspect.getmembers(module, (is_Action, is_Hybrid)):
-                    test_funcs.append(func)
+            # test_funcs = []
+            # for module in self.test_modules:
+            #     for _, func in inspect.getmembers(module, (is_Action, is_Hybrid)):
+            #         test_funcs.append(func)
+            raise NotImplementedError('Not support test modules')
         else:
             test_funcs = self.test_funcs
         return test_funcs
@@ -197,7 +198,7 @@ class Demo(BaseEngine):
         # lrn_program.test(list(datas))
 
     def _start_test(self, test_func, need_cleanup=False,
-                    full_matrix=True, max_cases=None, only_doc=True):
+                    full_matrix=True, max_cases=None, only_doc=True, test_funcs=None):
         title = self._get_func_name(test_func)
 
         self.params.doc_logger = self.params.case_logger
@@ -213,7 +214,10 @@ class Demo(BaseEngine):
         # generate test case
         with time_log('Compute case permutations'):
             # TODO: is that a good idea to use handler to gen case ?
-            case_matrix = sorted(list(extra_handler.gen_cases(test_func, need_cleanup=need_cleanup)))
+            if test_funcs:
+                case_matrix = sorted(list(extra_handler.gen_multi_test_objects_cases(test_funcs, need_cleanup=need_cleanup)))
+            else:
+                case_matrix = sorted(list(extra_handler.gen_cases(test_func, need_cleanup=need_cleanup)))
 
         LOGGER.info('Find %d valid cases', len(case_matrix))
 
@@ -315,25 +319,28 @@ class Demo(BaseEngine):
             test_funcs = self._prepare_test_funcs()
             self.env_hooks.imap("setup", params)
 
-            while test_funcs:
-                # TODO
-                test_func = random.choice(test_funcs)
-                test_funcs.remove(test_func)
-                # FIXME: remove this
-                if StaticMist.issubclass(test_func):
-                    test_func = test_func()
+            if len(test_funcs) > 1:
+                # this means user want multi test object
+                test_func = test_funcs[-1]
+            else:
+                test_func = test_funcs[0]
+                test_funcs = None
+            # FIXME: remove this
+            if StaticMist.issubclass(test_func):
+                test_func = test_func()
 
-                try:
-                    self._start_test(test_func,
-                                     full_matrix=self.params.full_matrix,
-                                     max_cases=self.params.max_cases,
-                                     only_doc=True if self.params.test_case else False,
-                                     need_cleanup=True if self.params.cleanup else False)
-                    LOGGER.info("Test %s          \033[92mPASS\033[0m\n",
-                                self._get_func_name(test_func))
-                except:
-                    LOGGER.info("Test %s          \033[91mFAIL\033[0m\n",
-                                self._get_func_name(test_func))
-                    raise
-                finally:
-                    self.env_hooks.imap("clean_up", params)
+            try:
+                self._start_test(test_func,
+                                 full_matrix=self.params.full_matrix,
+                                 max_cases=self.params.max_cases,
+                                 only_doc=True if self.params.test_case else False,
+                                 need_cleanup=True if self.params.cleanup else False,
+                                 test_funcs=test_funcs)
+                LOGGER.info("Test %s          \033[92mPASS\033[0m\n",
+                            self._get_func_name(test_func))
+            except:
+                LOGGER.info("Test %s          \033[91mFAIL\033[0m\n",
+                            self._get_func_name(test_func))
+                raise
+            finally:
+                self.env_hooks.imap("clean_up", params)

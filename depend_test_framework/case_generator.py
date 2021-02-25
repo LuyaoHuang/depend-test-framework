@@ -4,6 +4,7 @@ Helper classes to help generate case
 
 import itertools
 import random
+import copy
 
 from progressbar import ProgressBar, SimpleProgress, Counter, Timer
 
@@ -130,6 +131,57 @@ class DependGraphCaseGenerator(object):
                             case_obj = Case([func], tgt_env=tgt_end_env)
                             yield case_obj
 
+    def gen_multi_test_objects_cases(self, test_funcs, random_cleanup=False, need_cleanup=False, src_env=None, no_extra=True):
+        # TODO: merge this method with gen_cases
+        if src_env is None:
+            src_env = Env()
+
+        rets = list()
+        def _find_next_steps(int_test_funcs, cur_env, exist_steps, old_env):
+            if int_test_funcs:
+                test_func = int_test_funcs[0]
+                rest_func = int_test_funcs[1:]
+                new_env = cur_env.gen_transfer_env(test_func)
+                if no_extra and new_env is not None:
+                    # this means current env is okay
+                    # python3: new_exist_steps = exist_steps.copy()
+                    new_exist_steps = copy.deepcopy(exist_steps)
+                    new_exist_steps.append(test_func)
+                    _find_next_steps(rest_func, new_env, new_exist_steps, cur_env)
+                else:
+                    # sigh, need find a route
+                    target_env = list(Env.gen_require_env(test_func))
+                    for tgt_env in self.find_suit_envs(target_env):
+                        steps_list = self.compute_route_permutations(cur_env, tgt_env)
+                        new_env = tgt_env.gen_transfer_env(test_func)
+                        if not new_env:
+                            # BUG: this should not happen
+                            LOGGER.info('Cannot use env %s for testing', tgt_env)
+                            continue
+                        for steps in steps_list:
+                            # python3: new_exist_steps = exist_steps.copy()
+                            new_exist_steps = copy.deepcopy(exist_steps)
+                            new_exist_steps.extend(steps)
+                            new_exist_steps.append(test_func)
+                            _find_next_steps(rest_func, new_env, new_exist_steps, tgt_env)
+            else:
+                # this is the end of the test_funcs
+                # drop last test func
+                final_steps = exist_steps[:-1]
+                if need_cleanup:
+                    cleanup_steps = self.gen_cleanups(cur_env, src_env, random_cleanup)
+                else:
+                    cleanup_steps = None
+                # pass old_env since we drop last test func
+                rets.append((final_steps, old_env, cleanup_steps))
+
+        _find_next_steps(test_funcs, src_env, [], None)
+        for steps, tgt_env, cleanup_steps in rets:
+            tmp_case = self.restore_onigin_data(steps)
+            case_obj = Case(tmp_case, tgt_env=tgt_env,
+                            cleanups=cleanup_steps)
+            yield case_obj
+
     def gen_depend_map(self, test_funcs, drop_env=None, start_node=None):
         dep_graph = {}
         if not start_node:
@@ -192,7 +244,7 @@ class DependGraphCaseGenerator(object):
 
     def restore_onigin_data(self, datas):
         if self._use_map:
-            return [self._edge_map[data] for data in datas]
+            return [self._edge_map[data] if type(data) is int else data for data in datas]
         else:
             return datas
 
