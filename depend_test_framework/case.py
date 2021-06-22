@@ -69,3 +69,12 @@ class Case(object):
 
         for step in self.cleanups.steps:
             yield step
+
+    def detail_str(self):
+        step_name_list = []
+        for step in self._steps:
+            if getattr(step, '__name__', None):
+                step_name_list.append(step.__name__)
+            else:
+                step_name_list.append(step.__class__.__name__)
+        return "|".join(step_name_list)

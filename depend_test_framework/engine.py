@@ -230,6 +230,7 @@ class Demo(BaseEngine):
         extra_cases = {}
         while case_matrix:
             case = case_matrix.pop(0)
+            LOGGER.info("Test Object: %s Case: %s", get_name(test_func), case.detail_str())
             new_extra_cases, is_mist = runner.run_case(case, case_index, test_func,
                                                        need_cleanup, only_doc=only_doc)
             if not full_matrix and not is_mist:
