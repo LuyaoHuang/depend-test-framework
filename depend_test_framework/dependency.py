@@ -77,6 +77,9 @@ class Migrate(Graft):
         sub_env = env.get_data(self.src)
         new_env = copy.deepcopy(sub_env)
         env.set_data(self.tgt, new_env)
+        if sub_env is None:
+            # TODO: need do more test on this case
+            return
         if not new_env.data:
             new_env.data = True
         sub_env.childs = {}
