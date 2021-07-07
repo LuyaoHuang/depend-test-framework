@@ -136,6 +136,17 @@ class ExtraDepend(object):
         return "<ExtraDepend func_name='%s' at 0x%xd>" % self.func_name
 
 
+class CustomParams(Entrypoint):
+    """ Support user update params dynamically before run cases
+        usage:
+        @CustomParams.decorator()
+        def func_name(params):
+            params['new_params'] = 'example'
+            return params
+    """
+    pass
+
+
 def is_ExtraDepend(obj):
     return isinstance(obj, ExtraDepend)
 
@@ -146,6 +157,10 @@ def is_Graft(obj):
 
 def is_Cut(obj):
     return check_func_entrys(obj, Cut)
+
+
+def is_CustomParams(obj):
+    return check_func_entrys(obj, CustomParams)
 
 
 def get_all_depend(func, depend_types=None,

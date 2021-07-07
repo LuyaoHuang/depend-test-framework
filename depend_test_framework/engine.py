@@ -7,7 +7,7 @@ import contextlib
 
 from .base_class import Container, Params, get_func_params_require
 from .test_object import is_TestObject, is_Action, is_CheckPoint, is_Hybrid, StaticMist
-from .dependency import is_Graft, get_all_depend, Provider, Consumer, Graft, is_ExtraDepend
+from .dependency import is_Graft, get_all_depend, Provider, Consumer, Graft, is_ExtraDepend, is_CustomParams
 from .log import get_logger, get_file_logger, make_timing_logger
 from .case_generator import DependGraphCaseGenerator
 from .runner_handlers import MistsHandler
@@ -43,6 +43,7 @@ class BaseEngine(object):
         self.doc_funcs = {}
         self.extra_depends = {}
         self.params = Params()
+        self.custom_params_funcs = []
         # TODO: support more case generator
         self.case_gen = DependGraphCaseGenerator()
 
@@ -64,6 +65,9 @@ class BaseEngine(object):
 
             for _, func in inspect.getmembers(module, is_Graft):
                 self.grafts |= Container(get_all_depend(func, depend_cls=Graft))
+
+            for _, func in inspect.getmembers(module, is_CustomParams):
+                self.custom_params_funcs.append(func)
 
             for _, inst in inspect.getmembers(module, is_ExtraDepend):
                 if self.extra_depends.get(inst.func_name):
@@ -310,8 +314,13 @@ class Demo(BaseEngine):
             self.case_gen.gen_depend_map(self.actions | self.hybrids, self.params.drop_env)
 
     def run(self, params, doc_file=None):
+        LOGGER.info("Parmeters: %s", params)
+        for func in self.custom_params_funcs:
+            params = func(params)
+            if params is None:
+                raise ValueError('Custom Param func %s return invalid params' % func)
+        LOGGER.info("Final Parmeters: %s", params)
         self.params = params
-        LOGGER.info("Parmeters: %s", self.params)
         # TODO
         with self.preprare_logger(doc_file):
             self.prepare()
