@@ -223,7 +223,9 @@ class Demo(BaseEngine):
             else:
                 case_matrix = sorted(list(extra_handler.gen_cases(test_func, need_cleanup=need_cleanup)))
 
-        LOGGER.info('Find %d valid cases', len(case_matrix))
+        valid_case_amount = len(case_matrix)
+        operate_case_amount = valid_case_amount if valid_case_amount < max_cases else max_cases
+        LOGGER.info('Find %d valid cases', valid_case_amount)
 
         if self.params.ai_test:
             # training part
@@ -232,9 +234,16 @@ class Demo(BaseEngine):
 
         # TODO use a class to be a cases container
         extra_cases = {}
+        if only_doc:
+            case_operation = "Generating %d cases..."
+        else:
+            case_operation = "Executing %d cases..."
+        LOGGER.info(case_operation, operate_case_amount)
         while case_matrix:
             case = case_matrix.pop(0)
-            LOGGER.info("Test Object: %s Case: %s", get_name(test_func), case.detail_str())
+            LOGGER.info("Test Object [%d/%d]: %s Case: %s", case_index,
+                        operate_case_amount, get_name(test_func),
+                        case.detail_str())
             new_extra_cases, is_mist = runner.run_case(case, case_index, test_func,
                                                        need_cleanup, only_doc=only_doc)
             if not full_matrix and not is_mist:
