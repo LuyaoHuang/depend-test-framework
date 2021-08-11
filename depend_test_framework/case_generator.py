@@ -201,9 +201,9 @@ class DependGraphCaseGenerator(object):
             LOGGER.debug('Start check node %s', node)
             for func in test_funcs:
                 new_node = node.gen_transfer_env(func)
-                LOGGER.debug('posible New Node: %s func: %s', new_node, func)
                 if new_node is None:
                     continue
+                LOGGER.debug('posible New Node: %s func: %s', new_node, func)
                 if drop_env and len(new_node) > drop_env:
                     continue
                 if new_node not in dep_graph.keys():
