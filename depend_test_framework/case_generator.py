@@ -215,9 +215,9 @@ class DependGraphCaseGenerator(object):
                 data[new_node].add(func)
             pbar.update(len(dep_graph))
 
-        LOGGER.debug(pretty(dep_graph))
         LOGGER.info('Depend map is %d x %d size',
                     len(dep_graph), len(dep_graph))
+        LOGGER.info(pretty(dep_graph))
         self.dep_graph = dep_graph
         if self._use_map:
             self.build_graph_map()
