@@ -140,7 +140,11 @@ class Env(object):
         if not self.hit_requires(con):
             return
         new_env = copy.deepcopy(self)
-        objs = get_all_depend(func, depend_cls=(Provider, Graft, Cut))
+        # Make sure run Graft, Cut, Migrate before Provider
+        # Notice Migrate is subclass of Graft
+        objs = get_all_depend(func, depend_cls=(Graft, Cut))
+        new_env.call_effect_env(objs)
+        objs = get_all_depend(func, depend_cls=(Provider))
         new_env.call_effect_env(objs)
         return new_env
 
