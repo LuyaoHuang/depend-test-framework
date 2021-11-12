@@ -224,7 +224,10 @@ class Demo(BaseEngine):
                 case_matrix = sorted(list(extra_handler.gen_cases(test_func, need_cleanup=need_cleanup)))
 
         valid_case_amount = len(case_matrix)
-        operate_case_amount = valid_case_amount if valid_case_amount < max_cases else max_cases
+        if max_cases and valid_case_amount > max_cases:
+            operate_case_amount = max_cases
+        else:
+            operate_case_amount = valid_case_amount
         LOGGER.info('Find %d valid cases', valid_case_amount)
 
         if self.params.ai_test:
