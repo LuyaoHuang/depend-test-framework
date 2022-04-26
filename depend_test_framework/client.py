@@ -65,7 +65,7 @@ def load_template(template_file):
         And this function will return generater of params, modules, doc_modules, test_objs for each case
     """
     with open(template_file) as fp:
-        data = yaml.load(fp)
+        data = yaml.safe_load(fp)
 
     # TODO: create a subclass of dict to make this check to be a method
     cases = _get_and_check(data, 'case', list)
