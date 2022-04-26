@@ -1,7 +1,7 @@
 import os
 
 from depend_test_framework.test_object import Action, CheckPoint, TestObject, ObjectFailedException, CleanUpMethod
-from depend_test_framework.dependency import Provider, Consumer
+from depend_test_framework.dependency import Provider, Consumer, ExtraDepend
 from depend_test_framework.base_class import ParamsRequire
 
 
@@ -16,7 +16,7 @@ def echo_hello_world_file(params, env):
 
 @Action.decorator(1)
 @ParamsRequire.decorator(['file_path'])
-@Provider.decorator('hello_world_file', Provider.SET)
+#@Provider.decorator('hello_world_file', Provider.SET)
 def write_hello_world_file(params, env):
     """ Use open() create a file include hello world
     """
@@ -41,8 +41,13 @@ def check_hello_world_file(params, env):
 
 @Action.decorator(1)
 @ParamsRequire.decorator(['file_path'])
+@Consumer.decorator('hello_world_file', Consumer.REQUIRE)
 @Provider.decorator('hello_world_file', Provider.CLEAR)
 def remove_hello_world_file(params, env):
     """ remove hello world file
     """
     os.remove(params.file_path)
+
+
+dep1 = ExtraDepend('write_hello_world_file', [Provider('hello_world_file', Provider.SET)],
+                   ParamsRequire([('support_write', '=', True)]))
