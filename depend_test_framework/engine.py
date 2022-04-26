@@ -28,7 +28,7 @@ def get_name(obj):
 
 
 class BaseEngine(object):
-    def __init__(self, modules, doc_modules, hook_module=None):
+    def __init__(self, params, modules, doc_modules, hook_module=None):
         self.modules = modules
         self.doc_modules = doc_modules
         self.hook_module = hook_module
@@ -42,7 +42,7 @@ class BaseEngine(object):
         # TODO: not use dict
         self.doc_funcs = {}
         self.extra_depends = {}
-        self.params = Params()
+        self.params = params
         self.custom_params_funcs = []
         # TODO: support more case generator
         self.case_gen = DependGraphCaseGenerator()
@@ -66,14 +66,19 @@ class BaseEngine(object):
             for _, func in inspect.getmembers(module, is_Graft):
                 self.grafts |= Container(get_all_depend(func, depend_cls=Graft))
 
+            LOGGER.info("Parmeters: %s", self.params)
             for _, func in inspect.getmembers(module, is_CustomParams):
-                self.custom_params_funcs.append(func)
+                params = func(self.params)
+                if params is None:
+                    raise ValueError('Custom Param func %s return invalid params' % func)
+            LOGGER.info("Final Parmeters: %s", self.params)
 
             for _, inst in inspect.getmembers(module, is_ExtraDepend):
-                if self.extra_depends.get(inst.func_name):
-                    self.extra_depends[inst.func_name] |= inst.depends
-                else:
-                    self.extra_depends[inst.func_name] = inst.depends
+                if not inst.params_req or inst.params_req.valid_params(self.params):
+                    if self.extra_depends.get(inst.func_name):
+                        self.extra_depends[inst.func_name] |= inst.depends
+                    else:
+                        self.extra_depends[inst.func_name] = inst.depends
 
         for func in self.all_funcs:
             name = get_name(func)
@@ -146,7 +151,7 @@ class Demo(BaseEngine):
     """
     Standerd Engine + Mist handler + Hook support
     """
-    def __init__(self, basic_modules, test_modules=None,
+    def __init__(self, params, basic_modules, test_modules=None,
                  test_funcs=None, doc_modules=None, hook_module=None):
         self.test_modules = test_modules
         self.test_funcs = test_funcs
@@ -154,7 +159,7 @@ class Demo(BaseEngine):
         tmp_modules.extend(basic_modules)
         if self.test_modules:
             tmp_modules.extend(test_modules)
-        super(Demo, self).__init__(tmp_modules, doc_modules, hook_module)
+        super(Demo, self).__init__(params, tmp_modules, doc_modules, hook_module)
         # load static mist for mist handler
         self.static_mists = Container()
 
@@ -325,21 +330,14 @@ class Demo(BaseEngine):
         with time_log('Gen the depend map'):
             self.case_gen.gen_depend_map(self.actions | self.hybrids, self.params.drop_env)
 
-    def run(self, params, doc_file=None):
-        LOGGER.info("Parmeters: %s", params)
-        for func in self.custom_params_funcs:
-            params = func(params)
-            if params is None:
-                raise ValueError('Custom Param func %s return invalid params' % func)
-        LOGGER.info("Final Parmeters: %s", params)
-        self.params = params
+    def run(self, doc_file=None):
         # TODO
         with self.preprare_logger(doc_file):
             self.prepare()
 
             tests = []
             test_funcs = self._prepare_test_funcs()
-            self.env_hooks.imap("setup", params)
+            self.env_hooks.imap("setup", self.params)
 
             if len(test_funcs) > 1:
                 # this means user want multi test object
@@ -365,4 +363,4 @@ class Demo(BaseEngine):
                             self._get_func_name(test_func))
                 raise
             finally:
-                self.env_hooks.imap("clean_up", params)
+                self.env_hooks.imap("clean_up", self.params)

@@ -128,9 +128,10 @@ class Consumer(Dependency):
 
 
 class ExtraDepend(object):
-    def __init__(self, function_name, depend_list):
+    def __init__(self, function_name, depend_list, params_req=None):
         self.func_name = function_name
         self.depends = set(depend_list)
+        self.params_req = params_req
 
     def __repr__(self):
         return "<ExtraDepend func_name='%s' at 0x%xd>" % self.func_name

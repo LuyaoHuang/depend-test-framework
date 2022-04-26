@@ -109,9 +109,9 @@ def main():
         if args.template:
             for i, data in enumerate(load_template(args.template)):
                 params, modules, doc_modules, test_objs = data
-                d = Demo(modules, test_funcs=test_objs,
+                d = Demo(params, modules, test_funcs=test_objs,
                          doc_modules=doc_modules, hook_module=hook_module)
-                d.run(params, 'case%d.file' % i)
+                d.run('case%d.file' % i)
         else:
             modules_gen = load_modules(args.modules.split(','))
             doc_modules = load_modules(args.doc_modules.split(','))
@@ -122,9 +122,9 @@ def main():
                 params.mock = True
 
             # TODO: support specify test engine
-            d = Demo(list(modules_gen), test_funcs=list(test_objs_gen),
+            d = Demo(params, list(modules_gen), test_funcs=list(test_objs_gen),
                      doc_modules=list(doc_modules), hook_module=hook_module)
-            d.run(params)
+            d.run()
 
 
 if __name__ == '__main__':
