@@ -15,8 +15,6 @@ class Runner(object):
                  test_logger, doc_logger, env=None):
         self.params = params
         self.env = env or Env()
-        # this new env only used when test object failed
-        self._new_env = None
         self._checkpoints = checkpoints
         self.test_logger = test_logger
         self.doc_logger = doc_logger
@@ -66,21 +64,26 @@ class Runner(object):
         doc_func = self._get_doc_func(func)
         if not doc_func and only_doc:
             raise Exception("Not define %s name in doc modules" % func)
+
+        # XXX: record all env data update and update them later
+        with self.env.record(False):
+            if self._extra_handler:
+                self._extra_handler.handle_func(func, doc_func, self.env, only_doc)
+            else:
+                if only_doc:
+                    doc_func(self.params, self.env)
+                else:
+                    func(self.params, self.env)
+
+        old_history = self.env.dump_history()
         LOGGER.debug("Start transfer env, func: %s env: %s", func, self.env)
-        self._new_env = new_env = self.env.gen_transfer_env(func)
+        new_env = self.env.gen_transfer_env(func)
         if new_env is None:
             raise Exception("Fail to gen transfer env")
-
         LOGGER.debug("Env transfer to %s", new_env)
 
-        # XXX: we transfer the env before the test func, and test func can update info in the env
-        if self._extra_handler:
-            self._extra_handler.handle_func(func, doc_func, new_env, only_doc)
-        else:
-            if only_doc:
-                doc_func(self.params, new_env)
-            else:
-                func(self.params, new_env)
+        LOGGER.debug("Write data record %s", old_history)
+        new_env.write_history(old_history)
         self.env = new_env
 
         if not check:

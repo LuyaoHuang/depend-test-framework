@@ -40,11 +40,20 @@ class Env(object):
             child_env.data = value
 
     @contextlib.contextmanager
-    def record(self):
+    def record(self, fin_write=True):
         self._history = []
         self._record = True
         yield
         self._record = False
+        if fin_write:
+            self._set_record_datas()
+
+    def dump_history(self):
+        return self._history
+
+    def write_history(self, history):
+        self._history = history
+        self._set_record_datas()
 
     def __str__(self):
         return self.struct_table()
@@ -62,8 +71,17 @@ class Env(object):
         return self._get_data_from_path(path)
 
     def set_data(self, path, value):
-        LOGGER.debug('Env %s set_data, path: %s, value: %s', self, path, value)
-        self._set_data_from_path(path, value)
+        if self._record:
+            self._history.append((path, value))
+        else:
+            LOGGER.debug('Env %s set_data, path: %s, value: %s', self, path, value)
+            self._set_data_from_path(path, value)
+
+    def _set_record_datas(self):
+        for path, value in self._history:
+            LOGGER.debug('Env %s set_data, path: %s, value: %s', self, path, value)
+            self._set_data_from_path(path, value)
+        self._history = []
 
     def _get_data_from_path(self, path, use_getitem=False):
         if not path:
