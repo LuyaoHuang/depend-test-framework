@@ -69,6 +69,7 @@ class DependGraphCaseGenerator(object):
         ret_routes = []
         for route in routes:
             ret_routes.extend(itertools.product(*route))
+        LOGGER.info("Found %d routes", len(ret_routes))
         return ret_routes
 
     def gen_cases(self, test_func, random_cleanup=False, need_cleanup=False, src_env=None):
