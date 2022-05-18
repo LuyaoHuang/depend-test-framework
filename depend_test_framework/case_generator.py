@@ -22,10 +22,10 @@ class DependGraphCaseGenerator(object):
     Case generator which use a directed graph to describe
     the dependency of the work items
     """
-    def __init__(self, suit_env_limit=20, allow_dep=8, use_map=True):
+    def __init__(self, suit_env_limit=None, allow_dep=None, use_map=True):
         self.dep_graph = None
-        self._allow_dep = allow_dep
-        self._suit_env_limit = suit_env_limit
+        self._allow_dep = allow_dep or 20
+        self._suit_env_limit = suit_env_limit or 200
 
         # graph objs mapping
         self._use_map = use_map

@@ -45,7 +45,8 @@ class BaseEngine(object):
         self.params = params
         self.custom_params_funcs = []
         # TODO: support more case generator
-        self.case_gen = DependGraphCaseGenerator()
+        self.case_gen = DependGraphCaseGenerator(suit_env_limit=self.params.suit_env_limit,
+                                                 allow_dep=self.params.allow_dep)
 
         def _handle_func(func, conatiner):
             if is_TestObject(func):
