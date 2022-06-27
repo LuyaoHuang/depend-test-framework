@@ -6,7 +6,7 @@ import itertools
 import contextlib
 import traceback
 
-from .test_object import MistClearException, TestEndException, StaticMist, MistDeadEndException, is_TestObject
+from .test_object import MistClearException, TestEndException, StaticMist, MistDeadEndException, is_TestObject, ObjectFailedException
 from .case import Case
 from .log import get_logger
 
@@ -103,6 +103,9 @@ class MistsHandler(object):
                 test_func = test_func()
             try:
                 new_mist = test_func(params, tgt_env)
+            except ObjectFailedException:
+                # TODO
+                raise
             except Exception as e:
                 LOGGER.error('Func %s failed %s', test_func, e)
                 self.exception_logger(test_func, only_doc)

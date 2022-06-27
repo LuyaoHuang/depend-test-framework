@@ -103,6 +103,7 @@ class Runner(object):
         extra_cases = {}
         self.full_logger("=" * 8 + " case %d " % case_id + "=" * 8)
         have_extra_cases = False
+        cleanup_steps = None
         try:
             steps = list(case.steps)
             LOGGER.debug("Case steps: %s", steps)
@@ -129,31 +130,35 @@ class Runner(object):
                 for cases_name, case in tmp_cases:
                     extra_cases.setdefault(cases_name, []).append(case)
             cleanup_steps = case.clean_ups
+            # TODO: remove this
+            self.env = Env()
+            return extra_cases, have_extra_cases
         except TestEndException:
             cleanup_steps = self._extra_handler.gen_cleanups(self.env, Env())
+            raise
         except ObjectFailedException as e:
             # TODO: maybe need clean up
             LOGGER.error('Case %s failed at step %s: %s', case, step_index, e)
             if e.cleanup_method is CleanUpMethod.not_effect:
                 # In this case, we don't need do anything
-                pass
+                cleanup_steps = self._extra_handler.gen_cleanups(self.env, Env())
             else:
                 # TODO
                 raise NotImplementedError
-        if need_cleanup:
-            if not cleanup_steps:
-                LOGGER.info("Cannot find clean up way")
-                LOGGER.info("Current Env: %s", self.env)
-            else:
-                for func in cleanup_steps:
-                    try:
-                        step_index = self.run_one_step(func, step_index=step_index, only_doc=only_doc)
-                    except Exception as e:
-                        LOGGER.debug("Failed to run clean up steps %s: %s", func, e)
-                        step_index += 1
-        # TODO: remove this
-        self.env = Env()
-        return extra_cases, have_extra_cases
+            # Raise exception to mark this case failed
+            raise
+        finally:
+            if need_cleanup:
+                if not cleanup_steps:
+                    LOGGER.info("Cannot find clean up way")
+                    LOGGER.info("Current Env: %s", self.env)
+                else:
+                    for func in cleanup_steps:
+                        try:
+                            step_index = self.run_one_step(func, step_index=step_index, only_doc=only_doc)
+                        except Exception as e:
+                            LOGGER.debug("Failed to run clean up steps %s: %s", func, e)
+                            step_index += 1
 
     def run_case(self, case, case_id, test_func=None, need_cleanup=None, only_doc=True):
         if self._extra_handler:

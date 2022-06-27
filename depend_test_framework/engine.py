@@ -209,6 +209,7 @@ class Demo(BaseEngine):
 
     def _start_test(self, test_func, need_cleanup=False,
                     full_matrix=True, max_cases=None, only_doc=True, test_funcs=None):
+        ret = [0, 0]
         title = self._get_func_name(test_func)
 
         self.params.doc_logger = self.params.case_logger
@@ -253,15 +254,26 @@ class Demo(BaseEngine):
             LOGGER.info("Test Object [%d/%d]: %s Case: %s", case_index,
                         operate_case_amount, get_name(test_func),
                         case.detail_str())
-            new_extra_cases, is_mist = runner.run_case(case, case_index, test_func,
-                                                       need_cleanup, only_doc=only_doc)
-            if not full_matrix and not is_mist:
-                break
-            for mist_name, cases in new_extra_cases.items():
-                extra_cases.setdefault(mist_name, []).extend(cases)
-            case_index += 1
-            if max_cases and case_index > max_cases:
-                break
+            try:
+                new_extra_cases, is_mist = runner.run_case(case, case_index, test_func,
+                                                           need_cleanup, only_doc=only_doc)
+                LOGGER.info("%s Case: %s \033[92mPASS\033[0m", get_name(test_func),
+                            case.detail_str())
+                ret[0] += 1
+                if not full_matrix and not is_mist:
+                    break
+                for mist_name, cases in new_extra_cases.items():
+                    extra_cases.setdefault(mist_name, []).extend(cases)
+            except:
+                ret[1] += 1
+                LOGGER.info("%s Case: %s \033[91mFAIL\033[0m", get_name(test_func),
+                            case.detail_str())
+                if not full_matrix:
+                    break
+            finally:
+                case_index += 1
+                if max_cases and case_index > max_cases:
+                    break
 
         LOGGER.info("find another %d extra cases", len(extra_cases))
         self.params.doc_logger = self.params.mist_logger
@@ -276,6 +288,8 @@ class Demo(BaseEngine):
                 case_index += 1
                 if not full_matrix:
                     break
+
+        return ret
 
     def _create_training_data(self, cases, test_func):
         # TODO: Only for testing
@@ -351,14 +365,14 @@ class Demo(BaseEngine):
                 test_func = test_func()
 
             try:
-                self._start_test(test_func,
+                suc_num, fail_num = self._start_test(test_func,
                                  full_matrix=self.params.full_matrix,
                                  max_cases=self.params.max_cases,
                                  only_doc=True if self.params.test_case else False,
                                  need_cleanup=True if self.params.cleanup else False,
                                  test_funcs=test_funcs)
-                LOGGER.info("Test %s          \033[92mPASS\033[0m\n",
-                            self._get_func_name(test_func))
+                LOGGER.info("Test %s          \033[92mPASS %d \033[0m \033[91mFAIL %d\033[0m\n",
+                            self._get_func_name(test_func), suc_num, fail_num)
             except:
                 LOGGER.info("Test %s          \033[91mFAIL\033[0m\n",
                             self._get_func_name(test_func))
