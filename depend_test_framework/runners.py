@@ -150,8 +150,12 @@ class Runner(object):
         finally:
             if need_cleanup:
                 if not cleanup_steps:
-                    LOGGER.info("Cannot find clean up way")
-                    LOGGER.info("Current Env: %s", self.env)
+                    error_log = "Cannot find clean up step, current env: %s" % self.env
+                    LOGGER.info(error_log)
+                    if only_doc:
+                        self.doc_logger.info(error_log)
+                    else:
+                        self.full_logger(error_log)
                 else:
                     for func in cleanup_steps:
                         try:
