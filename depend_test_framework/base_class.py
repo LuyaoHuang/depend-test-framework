@@ -34,6 +34,15 @@ def check_func_entrys(obj, internal_type):
     return False
 
 
+def find_entry(obj, internal_type):
+    entrys = get_entrypoint(obj)
+    if not entrys:
+        return
+    for entry in entrys:
+        if isinstance(entry, internal_type):
+            return entry
+
+
 class Entrypoint(object):
     __params = None
 

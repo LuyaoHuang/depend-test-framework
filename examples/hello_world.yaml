@@ -2,6 +2,8 @@ params:
     test_case: False
     full_matrix: True
     cleanup: True
+    min_test_level: 1
+    max_test_level: 2
 
 case:
   - name: test hello world

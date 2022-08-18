@@ -6,7 +6,8 @@ import random
 import contextlib
 
 from .base_class import Container, Params, get_func_params_require
-from .test_object import is_TestObject, is_Action, is_CheckPoint, is_Hybrid, StaticMist
+from .test_object import is_TestObject, is_Action, is_CheckPoint, is_Hybrid
+from .test_object import Action, CheckPoint, Hybrid, StaticMist, get_test_level
 from .dependency import is_Graft, get_all_depend, Provider, Consumer, Graft, is_ExtraDepend, is_CustomParams
 from .log import get_logger, get_file_logger, make_timing_logger
 from .case_generator import DependGraphCaseGenerator
@@ -47,6 +48,8 @@ class BaseEngine(object):
         # TODO: support more case generator
         self.case_gen = DependGraphCaseGenerator(suit_env_limit=self.params.suit_env_limit,
                                                  allow_dep=self.params.allow_dep)
+        self.min_test_level = params.min_test_level or 0
+        self.max_test_level = params.max_test_level or 99
 
         def _handle_func(func, conatiner):
             if is_TestObject(func):
@@ -55,14 +58,24 @@ class BaseEngine(object):
             else:
                 conatiner.add(func)
 
+        def check_test_level(func, type=None):
+            level = get_test_level(func, type)
+            if level >= self.min_test_level and level <= self.max_test_level:
+                return True
+            else:
+                return False
+
         for module in modules:
             # TODO: remove dup code
             for _, func in inspect.getmembers(module, is_Action):
-                _handle_func(func, self.actions)
+                if check_test_level(func, Action):
+                    _handle_func(func, self.actions)
             for _, func in inspect.getmembers(module, is_CheckPoint):
-                _handle_func(func, self.checkpoints)
+                if check_test_level(func, CheckPoint):
+                    _handle_func(func, self.checkpoints)
             for _, func in inspect.getmembers(module, is_Hybrid):
-                _handle_func(func, self.hybrids)
+                if check_test_level(func, Hybrid):
+                    _handle_func(func, self.hybrids)
 
             for _, func in inspect.getmembers(module, is_Graft):
                 self.grafts |= Container(get_all_depend(func, depend_cls=Graft))

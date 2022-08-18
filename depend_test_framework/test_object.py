@@ -3,7 +3,7 @@ Test object related class
 """
 import enum
 
-from .base_class import Entrypoint, check_func_entrys
+from .base_class import Entrypoint, check_func_entrys, find_entry
 from .env import Env
 
 from .log import get_logger
@@ -179,3 +179,15 @@ def is_CheckPoint(obj):
 
 def is_Hybrid(obj):
     return check_func_entrys(obj, Hybrid)
+
+
+def get_test_level(obj, type=None):
+    if type:
+        if type not in [Action, CheckPoint, Hybrid]:
+            raise ValueError("Not support type: %s" % type)
+        entry = find_entry(obj, type)
+    else:
+        entry = find_entry(obj, Action) or find_entry(obj, CheckPoint) or find_entry(obj, Hybrid)
+    if not entry:
+        return
+    return entry.test_level
