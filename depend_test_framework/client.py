@@ -143,18 +143,48 @@ class ParamDoc(object):
     """
     _objs = dict()
 
-    def __init__(self, name, doc):
-        self.name = name
-        self.doc = doc
+    @classmethod
+    def append(cls, name, type, doc):
+        cls._objs[name] = (name, cls.trans_type(type), doc)
+
+    @staticmethod
+    def trans_type(type):
+        type_map = {list: "List",
+                    str: "String",
+                    bool: "Bool",
+                    int: "Integer"}
+        return type_map[type]
 
     @classmethod
-    def gen_document(cls, module_list):
-        pass
+    def gen_document(cls):
+        ret = ""
+        for param_data in cls._objs.values():
+            ret += "%s:  %s. %s\n" % param_data
+        return ret
 
     @classmethod
-    def collect_param_doc(cls, module_list):
+    def collect_param_doc(cls):
         pass
 
     @classmethod
     def dump_to_yaml(cls):
         pass
+
+
+ParamDoc.append("extra_check", bool, "Set true to enable run posible checkpoints after every actions")
+ParamDoc.append("mist_rules", str, "support (“both”, “split”), both:write mist case and standard case"
+                " to one file. split:  split mist cases to another file named like XXX-mist")
+ParamDoc.append("test_case", bool, "Set true to generate test cases and write them to case files "
+                "instead of executing test cases. Set false to generate test cases and execute them.")
+ParamDoc.append("max_cases", int, "Define max cases number when generate cases")
+ParamDoc.append("drop_env", int, "If an env length is higher than this value, this tool will skip this env")
+ParamDoc.append("test_objs", list, "A list of test action or checkpoint name which you want to test")
+ParamDoc.append("modules", list, "A list of python file names which includes actions and checkpoints")
+ParamDoc.append("doc-modules", list, "A list of python file names which includes actions and checkpoints. "
+                "This is for manual cases generation, the each action and checkpoint name"
+                "should be the same with the test execution action and checkpoint.")
+ParamDoc.append("cleanup", bool, "Whether to clean up env after each test case finishes")
+ParamDoc.append("suit_env_limit", int, "Increase this number if you want to generate more test cases")
+ParamDoc.append("allow_dep", int, "Increase this number if you want to generate more test cases")
+ParamDoc.append("min_test_level", int, "Ignore actions/checkpoints which test_level smaller than this value")
+ParamDoc.append("max_test_level", int, "Ignore actions/checkpoints which test_level bigger than this value")
