@@ -186,5 +186,11 @@ ParamDoc.append("doc-modules", list, "A list of python file names which includes
 ParamDoc.append("cleanup", bool, "Whether to clean up env after each test case finishes")
 ParamDoc.append("suit_env_limit", int, "Increase this number if you want to generate more test cases")
 ParamDoc.append("allow_dep", int, "Increase this number if you want to generate more test cases")
-ParamDoc.append("min_test_level", int, "Ignore actions/checkpoints which test_level smaller than this value")
-ParamDoc.append("max_test_level", int, "Ignore actions/checkpoints which test_level bigger than this value")
+ParamDoc.append("min_test_level", int, "Ignore actions/checkpoints which test_level smaller than this value."
+                "Test level 1-10 for actions/checkpoints which are basic operations and recommended to combine with other features."
+                "Test level > 10 for actions/checkpoints which are complex or advanced operations and not recommended to combine "
+                "with other features if the user is not familiar with them.")
+ParamDoc.append("max_test_level", int, "Ignore actions/checkpoints which test_level bigger than this value."
+                "Test level 1-10 for actions/checkpoints which are basic operations and recommended to combine with other features."
+                "Test level > 10 for actions/checkpoints which are complex or advanced operations and not recommended to combine "
+                "with other features if the user is not familiar with them.")
