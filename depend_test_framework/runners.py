@@ -12,7 +12,7 @@ LOGGER = get_logger(__name__)
 
 class Runner(object):
     def __init__(self, params, checkpoints, doc_funcs,
-                 test_logger, doc_logger, env=None):
+                 test_logger, doc_logger, env=None, srs=None):
         self.params = params
         self.env = env or Env()
         self._checkpoints = checkpoints
@@ -20,6 +20,7 @@ class Runner(object):
         self.doc_logger = doc_logger
         self._doc_funcs = doc_funcs
         self._extra_handler = None
+        self._srs = srs
 
     def full_logger(self, msg):
         self.test_logger.info(msg)
@@ -52,7 +53,8 @@ class Runner(object):
             return
         return self._doc_funcs[doc_func_name]
 
-    def run_one_step(self, func, step_index=None, check=False, only_doc=True):
+    def run_one_step(self, func, step_index=None, check=False,
+                     only_doc=True, env_trace=None, func_trace=None):
         if step_index is not None:
             # TODO: move doc_logger definition in basic engine
             if only_doc:
@@ -75,6 +77,9 @@ class Runner(object):
                 else:
                     func(self.params, self.env)
 
+        if func_trace is not None:
+            func_trace.append(func)
+
         old_history = self.env.dump_history()
         LOGGER.debug("Start transfer env, func: %s env: %s", func, self.env)
         new_env = self.env.gen_transfer_env(func)
@@ -84,7 +89,17 @@ class Runner(object):
 
         LOGGER.debug("Write data record %s", old_history)
         new_env.write_history(old_history)
+
+        for sr in self._srs:
+            if sr.check_require(env_trace, func_trace):
+                LOGGER.info("%s %s", env_trace, func_trace)
+                _, new_env = sr.compute_target_node(new_env)
+                # TODO: if 2 sr hit requires ?
+                break
+
         self.env = new_env
+        if env_trace is not None:
+            env_trace.append(self.env.copy())
 
         if not check:
             return step_index
@@ -94,7 +109,8 @@ class Runner(object):
             if checkpoint == func:
                 continue
             step_index = self.run_one_step(checkpoint,
-                step_index=step_index, only_doc=only_doc)
+                step_index=step_index, only_doc=only_doc,
+                env_trace=env_trace, func_trace=func_trace)
 
         return step_index
 
@@ -104,6 +120,8 @@ class Runner(object):
         self.full_logger("=" * 8 + " case %d " % case_id + "=" * 8)
         have_extra_cases = False
         cleanup_steps = None
+        env_trace = []
+        func_trace = []
         try:
             steps = list(case.steps)
             LOGGER.debug("Case steps: %s", steps)
@@ -116,13 +134,16 @@ class Runner(object):
             for func in steps:
                 # TODO support real case
                 step_index = self.run_one_step(func,
-                    step_index=step_index, only_doc=only_doc)
+                    step_index=step_index, only_doc=only_doc,
+                    env_trace=env_trace, func_trace=func_trace)
 
             with self._extra_handler.watch_func():
                 step_index = self.run_one_step(test_func,
                         step_index=step_index,
                         check=self.params.extra_check,
-                        only_doc=only_doc)
+                        only_doc=only_doc,
+                        env_trace=env_trace,
+                        func_trace=func_trace)
 
             tmp_cases = self._extra_handler.gen_extra_cases(case, self.env, test_func)
             if tmp_cases:
@@ -159,7 +180,10 @@ class Runner(object):
                 else:
                     for func in cleanup_steps:
                         try:
-                            step_index = self.run_one_step(func, step_index=step_index, only_doc=only_doc)
+                            step_index = self.run_one_step(func, step_index=step_index,
+                                                           only_doc=only_doc,
+                                                           env_trace=env_trace,
+                                                           func_trace=func_trace)
                         except Exception as e:
                             LOGGER.debug("Failed to run clean up steps %s: %s", func, e)
                             step_index += 1

@@ -9,6 +9,7 @@ from .base_class import Container, Params, get_func_params_require
 from .test_object import is_TestObject, is_Action, is_CheckPoint, is_Hybrid
 from .test_object import Action, CheckPoint, Hybrid, StaticMist, get_test_level
 from .dependency import is_Graft, get_all_depend, Provider, Consumer, Graft, is_ExtraDepend, is_CustomParams
+from .special_route import is_SpecialRoute, EdgeRequireRoute
 from .log import get_logger, get_file_logger, make_timing_logger
 from .case_generator import DependGraphCaseGenerator
 from .runner_handlers import MistsHandler
@@ -43,6 +44,7 @@ class BaseEngine(object):
         # TODO: not use dict
         self.doc_funcs = {}
         self.extra_depends = {}
+        self.special_routes = []
         self.params = params
         self.custom_params_funcs = []
         # TODO: support more case generator
@@ -94,14 +96,34 @@ class BaseEngine(object):
                     else:
                         self.extra_depends[inst.func_name] = inst.depends
 
+            for _, inst in inspect.getmembers(module, is_SpecialRoute):
+                self.special_routes.append(inst)
+
+        func_map = {}
         for func in self.all_funcs:
             name = get_name(func)
+            if func_map.get(name):
+                raise NameError("2 function have the same name %s" % name)
+            func_map[name] = func
             # TODO: don't direct access private value
             func._test_entry |= self.extra_depends.get(name, set())
             for module in self.doc_modules:
                 if getattr(module, name, None):
                     self.doc_funcs[name] = getattr(module, name)
                     break
+
+        # FIXME
+        for sr in self.special_routes:
+            if isinstance(sr, EdgeRequireRoute):
+                new_prev_edges = []
+                for data in sr.prev_edges:
+                    if type(data) is str:
+                        if not func_map.get(data):
+                            raise NameError("Cannot function which named %s" % data)
+                        new_prev_edges.append(func_map[data])
+                    else:
+                        new_prev_edges.append(data)
+                sr.prev_edges = new_prev_edges
 
         if self.hook_module:
             for _, obj in inspect.getmembers(self.hook_module,
@@ -232,7 +254,7 @@ class Demo(BaseEngine):
 
         # create runner
         runner = Runner(self.params, self.checkpoints, self.doc_funcs,
-                        self.params.logger, self.params.doc_logger)
+                        self.params.logger, self.params.doc_logger, srs=self.special_routes)
         extra_handler = self._load_extra_handler(runner)
 
         # generate test case
@@ -356,7 +378,9 @@ class Demo(BaseEngine):
     def prepare(self):
         self.filter_all_func_custom(self._cb_filter_with_param)
         with time_log('Gen the depend map'):
-            self.case_gen.gen_depend_map(self.actions | self.hybrids, self.params.drop_env)
+            self.case_gen.gen_depend_map(self.actions | self.hybrids,
+                                         self.params.drop_env,
+                                         special_routes=self.special_routes)
 
     def run(self, doc_file=None):
         # TODO

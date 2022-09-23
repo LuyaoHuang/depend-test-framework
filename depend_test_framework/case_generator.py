@@ -24,6 +24,7 @@ class DependGraphCaseGenerator(object):
     """
     def __init__(self, suit_env_limit=None, allow_dep=None, use_map=True):
         self.dep_graph = None
+        self.sr_graph = None
         self._allow_dep = allow_dep or 20
         self._suit_env_limit = suit_env_limit or 200
 
@@ -61,9 +62,13 @@ class DependGraphCaseGenerator(object):
         src_node = self._nodes_map.index(src_env) if self._use_map else src_env
         tgt_node = self._nodes_map.index(target_env) if self._use_map else target_env
         if cleanup:
-            routes = route_permutations(graph, tgt_node, src_node, pb=pbar, allow_dep=self._allow_dep)
+            routes = route_permutations(graph, tgt_node, src_node,
+                                        pb=pbar, allow_dep=self._allow_dep,
+                                        sr_graph=self.sr_graph)
         else:
-            routes = route_permutations(graph, src_node, tgt_node, pb=pbar, allow_dep=self._allow_dep)
+            routes = route_permutations(graph, src_node, tgt_node,
+                                        pb=pbar, allow_dep=self._allow_dep,
+                                        sr_graph=self.sr_graph)
         pbar.finish()
 
         ret_routes = []
@@ -183,8 +188,10 @@ class DependGraphCaseGenerator(object):
                             cleanups=cleanup_steps)
             yield case_obj
 
-    def gen_depend_map(self, test_funcs, drop_env=None, start_node=None):
+    def gen_depend_map(self, test_funcs, drop_env=None,
+                       start_node=None, special_routes=None):
         dep_graph = {}
+        sr_graph = {}
         if not start_node:
             start_node = Env()
         dep_graph.setdefault(start_node, {})
@@ -214,14 +221,34 @@ class DependGraphCaseGenerator(object):
                 data = dep_graph[node]
                 data.setdefault(new_node, set())
                 data[new_node].add(func)
+
+            for sr in special_routes:
+                old_node, new_node = sr.compute_target_node(node)
+                if new_node is None:
+                    continue
+                LOGGER.debug('posible New Node: %s Special Route: %s', new_node, sr)
+                if drop_env and len(new_node) > drop_env:
+                    continue
+                if new_node not in dep_graph.keys():
+                    LOGGER.debug('New Node: %s Special Route: %s', new_node, sr)
+                    dep_graph.setdefault(new_node, {})
+                    nodes.append(new_node)
+                sr_graph.setdefault(old_node, {})
+                data = sr_graph[old_node]
+                if data.get(new_node) and sr != data.get(new_node):
+                    raise NotImplementedError('Not support 2 srs point to the same new node')
+                data[new_node] = sr
             pbar.update(len(dep_graph))
 
         LOGGER.info('Depend map is %d x %d size',
                     len(dep_graph), len(dep_graph))
         LOGGER.info(pretty(dep_graph))
+        LOGGER.info(pretty(sr_graph))
         self.dep_graph = dep_graph
+        self.sr_graph = sr_graph
         if self._use_map:
             self.build_graph_map()
+            self.update_srs()
 
     def build_graph_map(self):
         if not self.dep_graph:
@@ -242,6 +269,19 @@ class DependGraphCaseGenerator(object):
             v_graph[self._nodes_map.index(node)] = sub_map
 
         self._v_graph = v_graph
+
+    def update_srs(self):
+        finished_srs = []
+        new_sr_graph = {}
+        for node in self.sr_graph:
+            sub_map = {}
+            for tgt_node, sr in self.sr_graph[node].items():
+                if sr not in finished_srs:
+                    sr.update_params(self._edge_map, self._nodes_map)
+                    finished_srs.append(sr)
+                sub_map[self._nodes_map.index(tgt_node)] = sr
+            new_sr_graph[self._nodes_map.index(node)] = sub_map
+        self.sr_graph = new_sr_graph
 
     def restore_onigin_data(self, datas):
         if self._use_map:
