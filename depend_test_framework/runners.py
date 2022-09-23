@@ -90,16 +90,17 @@ class Runner(object):
         LOGGER.debug("Write data record %s", old_history)
         new_env.write_history(old_history)
 
+        if env_trace is not None:
+            env_trace.append(new_env)
+
         for sr in self._srs:
             if sr.check_require(env_trace, func_trace):
-                LOGGER.info("%s %s", env_trace, func_trace)
                 _, new_env = sr.compute_target_node(new_env)
+                env_trace[-1] = new_env
                 # TODO: if 2 sr hit requires ?
                 break
 
         self.env = new_env
-        if env_trace is not None:
-            env_trace.append(self.env.copy())
 
         if not check:
             return step_index

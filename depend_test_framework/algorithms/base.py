@@ -17,12 +17,6 @@ def route_permutations(graph, start, target, history=None, pb=None,
     routes = []
     nodes_map = graph[start]
 
-    if not node_trace:
-        new_node_trace = [start]
-    else:
-        new_node_trace = list(node_trace)
-        new_node_trace.append(start)
-
     if history is None:
         history = {}
 
@@ -43,13 +37,20 @@ def route_permutations(graph, start, target, history=None, pb=None,
             tmp_edge_trace = list(edge_trace)
             tmp_edge_trace.append(opaque)
 
+        if not node_trace:
+            new_node_trace = [start, fin_node]
+        else:
+            new_node_trace = list(node_trace)
+            new_node_trace.append(fin_node)
+
         if node in sr_graph:
             for new_node, sr in sr_graph[node].items():
                 if sr.check_require(new_node_trace, tmp_edge_trace):
                     fin_node = new_node
+                    new_node_trace[-1] = fin_node
                     break
 
-        if fin_node in new_node_trace:
+        if fin_node in new_node_trace[:-1]:
             continue
         if fin_node in history.keys():
             ret = history[fin_node]
@@ -68,7 +69,6 @@ def route_permutations(graph, start, target, history=None, pb=None,
                 tmp_route.extend(sub_route)
                 routes.append(tmp_route)
 
-    del(new_node_trace)
     if not sr_graph:
         # Cannot use history when there are special routes
         history[start] = routes

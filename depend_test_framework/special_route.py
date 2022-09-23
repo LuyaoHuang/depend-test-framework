@@ -23,9 +23,9 @@ def is_SpecialRoute(obj):
 
 
 class EdgeRequireRoute(BaseSpecialRoute):
-    def __init__(self, prev_edges, extra_provider):
+    def __init__(self, prev_edges, extra_providers):
         self.prev_edges = prev_edges
-        self._extra_provider = extra_provider
+        self._extra_providers = extra_providers
         raise NotImplementedError("This Special Route have a bug and cannot be used")
 
     def compute_target_node(self, src_node):
@@ -35,7 +35,7 @@ class EdgeRequireRoute(BaseSpecialRoute):
             if not tmp_node:
                 return
         old_node = tmp_node.copy()
-        self._extra_provider.effect_env(tmp_node)
+        tmp_node.call_effect_env(self._extra_providers)
         return old_node, tmp_node
 
     def update_params(self, edge_map, node_map):
@@ -52,15 +52,15 @@ class EdgeRequireRoute(BaseSpecialRoute):
 
 
 class NodeRequireRoute(BaseSpecialRoute):
-    def __init__(self, prev_node_requires, extra_provider):
+    def __init__(self, prev_node_requires, extra_providers):
         # prev_node_requires: [[req1, req2], [req3, req4]]
         self._prev_node_requires = prev_node_requires
-        self._extra_provider = extra_provider
+        self._extra_providers = extra_providers
         self._node_map = None
 
     def compute_target_node(self, src_node):
         new_node = src_node.copy()
-        self._extra_provider.effect_env(new_node)
+        new_node.call_effect_env(self._extra_providers)
         return src_node, new_node
 
     def update_params(self, edge_map, node_map):
