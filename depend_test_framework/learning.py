@@ -82,8 +82,8 @@ class StepsSeqScorer(object):
 
     def train_and_test(self, data_set):
         # random.seed(123)
-        train_num = len(data_set) / 2
+        train_num = int(len(data_set) / 2)
         train_set = random.sample(data_set, train_num)
         self.train(train_set)
-        test_num = len(data_set) / 5
+        test_num = int(len(data_set) / 5)
         self.test(random.sample(data_set, test_num), load_data=False)

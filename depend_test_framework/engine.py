@@ -238,7 +238,7 @@ class Demo(BaseEngine):
 
         datas = list(self._create_training_data(case_matrix, test_func))
         max_len = _get_max_len(datas)
-        lrn_program = StepsSeqScorer(5, func_map={func: i for i, func in enumerate(sorted(self.all_funcs))}, time_steps=max_len)
+        lrn_program = StepsSeqScorer(5, func_map={func: i for i, func in enumerate(self.all_funcs)}, time_steps=max_len)
         lrn_program.train_and_test(datas)
         # lrn_program.test(list(datas))
 
@@ -275,7 +275,7 @@ class Demo(BaseEngine):
         if self.params.ai_test:
             # training part
             self._training(case_matrix, test_func)
-            return
+            return None, None
 
         # TODO use a class to be a cases container
         extra_cases = {}
