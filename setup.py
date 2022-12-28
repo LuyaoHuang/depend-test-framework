@@ -13,7 +13,6 @@ REQUIREMENTS = [
     'progressbar2',
     'PyYAML',
     'numpy',
-    'tensorflow',
 ]
 
 CHECK_FILES = [
