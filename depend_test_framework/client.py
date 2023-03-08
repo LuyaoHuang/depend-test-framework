@@ -91,8 +91,12 @@ def load_template(template_file):
             for extra_params in full_permutations(case['params_matrix']):
                 new_params = Params(params)
                 new_params.update(extra_params)
+                modules = reload_modules(modules)
+                doc_modules = reload_modules(doc_modules)
                 yield new_params, modules, doc_modules, copy.deepcopy(test_objs)
         else:
+            modules = reload_modules(modules)
+            doc_modules = reload_modules(doc_modules)
             yield params, modules, doc_modules, copy.deepcopy(test_objs)
 
 
@@ -102,6 +106,13 @@ def load_modules(modules_list, module_path='.'):
     sys.path.insert(0, cmd_folder)
     for module in modules_list:
         yield importlib.import_module(module)
+
+
+def reload_modules(modules_list):
+    ret = list()
+    for module in modules_list:
+        ret.append(importlib.reload(module))
+    return ret
 
 
 def load_objs(test_objs_list):
