@@ -105,7 +105,9 @@ def load_modules(modules_list, module_path='.'):
     cmd_folder = os.path.realpath(module_path)
     sys.path.insert(0, cmd_folder)
     for module in modules_list:
-        yield importlib.import_module(module)
+        tmp_module = importlib.import_module(module)
+        # BUG FIX
+        yield importlib.reload(tmp_module)
 
 
 def reload_modules(modules_list):
