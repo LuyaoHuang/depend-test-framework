@@ -18,7 +18,7 @@ if os.path.isdir(os.path.join(BASEDIR, 'depend_test_framework')):
 
 from depend_test_framework.engine import Demo
 from depend_test_framework.base_class import Params
-from depend_test_framework.client import load_template, load_modules, load_objs
+from depend_test_framework.client import load_template, load_modules, load_objs, ParamDoc
 
 
 def parse_cmd():
@@ -51,6 +51,10 @@ def parse_cmd():
                         help='Need mock all test steps')
     parser.add_argument('--debug', dest='debug', action='store_true',
                         help='Enable debug log')
+    parser.add_argument('--ai-test', dest='ai_test', action='store_true',
+                        help='Do a simple AI test base on generated cases')
+    parser.add_argument('--print-doc', dest='print_doc', action='store_true',
+                        help='Display parameters document')
     args = parser.parse_args()
     return args
 
@@ -102,14 +106,18 @@ def main():
     else:
         logging.basicConfig(level=logging.INFO)
 
+    if args.print_doc:
+        print(ParamDoc.gen_document())
+        return
+
     with change_work_path(args):
         hook_module = load_module(args.hook_module) if args.hook_module else None
         if args.template:
             for i, data in enumerate(load_template(args.template)):
                 params, modules, doc_modules, test_objs = data
-                d = Demo(modules, test_funcs=test_objs,
+                d = Demo(params, modules, test_funcs=test_objs,
                          doc_modules=doc_modules, hook_module=hook_module)
-                d.run(params, 'case%d.file' % i)
+                d.run('case%d.file' % i)
         else:
             modules_gen = load_modules(args.modules.split(','))
             doc_modules = load_modules(args.doc_modules.split(','))
@@ -120,9 +128,9 @@ def main():
                 params.mock = True
 
             # TODO: support specify test engine
-            d = Demo(list(modules_gen), test_funcs=list(test_objs_gen),
+            d = Demo(params, list(modules_gen), test_funcs=list(test_objs_gen),
                      doc_modules=list(doc_modules), hook_module=hook_module)
-            d.run(params)
+            d.run()
 
 
 if __name__ == '__main__':

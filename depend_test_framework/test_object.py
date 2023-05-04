@@ -1,7 +1,9 @@
 """
 Test object related class
 """
-from .base_class import Entrypoint, check_func_entrys
+import enum
+
+from .base_class import Entrypoint, check_func_entrys, find_entry
 from .env import Env
 
 from .log import get_logger
@@ -86,6 +88,25 @@ class MistClearException(Exception):
     """
 
 
+class CleanUpMethod(enum.Enum):
+    # Failure not effect env, runner will cleanup base on new env
+    not_effect = 0
+    # Env already fallback in test object, runner will clean up base on previous step env
+    previous_step = 1
+    # Use custom clean up function
+    custom = 2
+
+
+class ObjectFailedException(Exception):
+    """
+    This means the test object failed for some reason
+    And pass cleanup_method let runner know how to clean up
+    """
+    def __init__(self, cleanup_method=None, *args):
+        super(ObjectFailedException, self).__init__(*args)
+        self.cleanup_method = cleanup_method or CleanUpMethod.not_effect
+
+
 class Mist(object):
     """
     TODO Need explain what's this
@@ -158,3 +179,15 @@ def is_CheckPoint(obj):
 
 def is_Hybrid(obj):
     return check_func_entrys(obj, Hybrid)
+
+
+def get_test_level(obj, type=None):
+    if type:
+        if type not in [Action, CheckPoint, Hybrid]:
+            raise ValueError("Not support type: %s" % type)
+        entry = find_entry(obj, type)
+    else:
+        entry = find_entry(obj, Action) or find_entry(obj, CheckPoint) or find_entry(obj, Hybrid)
+    if not entry:
+        return
+    return entry.test_level

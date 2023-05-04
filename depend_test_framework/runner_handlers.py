@@ -4,8 +4,9 @@ Helpers which help handle the runner result and extend the runner function
 
 import itertools
 import contextlib
+import traceback
 
-from .test_object import MistClearException, TestEndException, StaticMist, MistDeadEndException
+from .test_object import MistClearException, TestEndException, StaticMist, MistDeadEndException, is_TestObject, ObjectFailedException
 from .case import Case
 from .log import get_logger
 
@@ -50,6 +51,9 @@ class MistsHandler(object):
         else:
             self._test_logger("Desciption: Need add doc for function %s" % func, use_doc=use_doc)
 
+    def exception_logger(self, func, use_doc=False):
+        self._test_logger("Unexpected excetion in %s: %s" % (func, traceback.format_exc()), use_doc=use_doc)
+
     def _check_mists(self, mists, env, func, new_env=None):
         # TODO support mutli mist
         if not mists:
@@ -86,12 +90,26 @@ class MistsHandler(object):
                 mists.remove(mist_obj)
             except MistDeadEndException:
                 raise TestEndException
+            except Exception as e:
+                LOGGER.error('Func %s failed %s', mist_func, e)
+                self.exception_logger(mist_func, only_doc)
+                raise TestEndException
             # TODO: mist in the mist
             new_mist = None
         else:
             self.desc_logger(test_func, only_doc)
 
-            new_mist = test_func(params, tgt_env)
+            if is_TestObject(test_func):
+                test_func = test_func()
+            try:
+                new_mist = test_func(params, tgt_env)
+            except ObjectFailedException:
+                # TODO
+                raise
+            except Exception as e:
+                LOGGER.error('Func %s failed %s', test_func, e)
+                self.exception_logger(test_func, only_doc)
+                raise TestEndException
 
         if new_mist and mists is not None:
             LOGGER.debug('Add a new mist %s', new_mist)
@@ -136,6 +154,12 @@ class MistsHandler(object):
         else:
             # TODO: check if it is func
             return self._case_gen.gen_cases(test_func, need_cleanup=need_cleanup)
+
+    def gen_multi_test_objects_cases(self, test_funcs, need_cleanup=None):
+        return self._case_gen.gen_multi_test_objects_cases(test_funcs, need_cleanup=need_cleanup)
+
+    def gen_cleanups(self, src_env, tgt_env):
+        return self._case_gen.gen_cleanups(src_env, tgt_env)
 
 
 class MistsContainer(list):

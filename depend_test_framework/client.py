@@ -6,6 +6,7 @@ import sys
 import os
 import yaml
 import copy
+import random
 import importlib
 
 from .base_class import Params
@@ -48,6 +49,10 @@ def load_template(template_file):
                    model:
                      - 'none'
                      - 'virtio'
+               random_params:
+                 curmem:
+                   1048576: 0.2
+                   524288: 0.8
                test_objs: // required, the target want test
                  - mem_test.virsh_set_period
                modules: // required, will help to generate case
@@ -60,7 +65,7 @@ def load_template(template_file):
         And this function will return generater of params, modules, doc_modules, test_objs for each case
     """
     with open(template_file) as fp:
-        data = yaml.load(fp)
+        data = yaml.safe_load(fp)
 
     # TODO: create a subclass of dict to make this check to be a method
     cases = _get_and_check(data, 'case', list)
@@ -71,14 +76,27 @@ def load_template(template_file):
         if 'params' in case.keys():
             params.update(case['params'])
         modules = list(load_modules(_get_and_check(case, 'modules')))
-        doc_modules = list(load_modules(_get_and_check(case, 'doc-modules')))
+        if 'doc-modules' in case.keys():
+            doc_modules = list(load_modules(_get_and_check(case, 'doc-modules')))
+        else:
+            doc_modules = []
         test_objs = list(load_objs(_get_and_check(case, 'test_objs')))
+        if 'random_params' in case.keys():
+            for param_name, tmp_data in case['random_params'].items():
+                for value, rate in tmp_data.items():
+                    if random.random() < float(rate):
+                        break
+                params[param_name] = value
         if 'params_matrix' in case.keys():
             for extra_params in full_permutations(case['params_matrix']):
                 new_params = Params(params)
                 new_params.update(extra_params)
+                modules = reload_modules(modules)
+                doc_modules = reload_modules(doc_modules)
                 yield new_params, modules, doc_modules, copy.deepcopy(test_objs)
         else:
+            modules = reload_modules(modules)
+            doc_modules = reload_modules(doc_modules)
             yield params, modules, doc_modules, copy.deepcopy(test_objs)
 
 
@@ -87,7 +105,16 @@ def load_modules(modules_list, module_path='.'):
     cmd_folder = os.path.realpath(module_path)
     sys.path.insert(0, cmd_folder)
     for module in modules_list:
-        yield importlib.import_module(module)
+        tmp_module = importlib.import_module(module)
+        # BUG FIX
+        yield importlib.reload(tmp_module)
+
+
+def reload_modules(modules_list):
+    ret = list()
+    for module in modules_list:
+        ret.append(importlib.reload(module))
+    return ret
 
 
 def load_objs(test_objs_list):
@@ -129,18 +156,54 @@ class ParamDoc(object):
     """
     _objs = dict()
 
-    def __init__(self, name, doc):
-        self.name = name
-        self.doc = doc
+    @classmethod
+    def append(cls, name, type, doc):
+        cls._objs[name] = (name, cls.trans_type(type), doc)
+
+    @staticmethod
+    def trans_type(type):
+        type_map = {list: "List",
+                    str: "String",
+                    bool: "Bool",
+                    int: "Integer"}
+        return type_map[type]
 
     @classmethod
-    def gen_document(cls, module_list):
-        pass
+    def gen_document(cls):
+        ret = ""
+        for param_data in cls._objs.values():
+            ret += "%s:  %s. %s\n" % param_data
+        return ret
 
     @classmethod
-    def collect_param_doc(cls, module_list):
+    def collect_param_doc(cls):
         pass
 
     @classmethod
     def dump_to_yaml(cls):
         pass
+
+
+ParamDoc.append("extra_check", bool, "Set true to enable run posible checkpoints after every actions")
+ParamDoc.append("mist_rules", str, "support (“both”, “split”), both:write mist case and standard case"
+                " to one file. split:  split mist cases to another file named like XXX-mist")
+ParamDoc.append("test_case", bool, "Set true to generate test cases and write them to case files "
+                "instead of executing test cases. Set false to generate test cases and execute them.")
+ParamDoc.append("max_cases", int, "Define max cases number when generate cases")
+ParamDoc.append("drop_env", int, "If an env length is higher than this value, this tool will skip this env")
+ParamDoc.append("test_objs", list, "A list of test action or checkpoint name which you want to test")
+ParamDoc.append("modules", list, "A list of python file names which includes actions and checkpoints")
+ParamDoc.append("doc-modules", list, "A list of python file names which includes actions and checkpoints. "
+                "This is for manual cases generation, the each action and checkpoint name"
+                "should be the same with the test execution action and checkpoint.")
+ParamDoc.append("cleanup", bool, "Whether to clean up env after each test case finishes")
+ParamDoc.append("suit_env_limit", int, "Increase this number if you want to generate more test cases")
+ParamDoc.append("allow_dep", int, "Increase this number if you want to generate more test cases")
+ParamDoc.append("min_test_level", int, "Ignore actions/checkpoints which test_level smaller than this value."
+                "Test level 1-10 for actions/checkpoints which are basic operations and recommended to combine with other features."
+                "Test level > 10 for actions/checkpoints which are complex or advanced operations and not recommended to combine "
+                "with other features if the user is not familiar with them.")
+ParamDoc.append("max_test_level", int, "Ignore actions/checkpoints which test_level bigger than this value."
+                "Test level 1-10 for actions/checkpoints which are basic operations and recommended to combine with other features."
+                "Test level > 10 for actions/checkpoints which are complex or advanced operations and not recommended to combine "
+                "with other features if the user is not familiar with them.")

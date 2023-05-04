@@ -1,0 +1,16 @@
+params:
+    test_case: False
+    full_matrix: True
+    cleanup: True
+    min_test_level: 1
+    max_test_level: 2
+
+case:
+  - name: test hello world
+    params:
+      file_path: '/tmp/hello_world.file'
+      support_write: True
+    test_objs:
+      - hello_world.check_hello_world_file
+    modules:
+      - hello_world

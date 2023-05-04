@@ -77,6 +77,9 @@ class Migrate(Graft):
         sub_env = env.get_data(self.src)
         new_env = copy.deepcopy(sub_env)
         env.set_data(self.tgt, new_env)
+        if sub_env is None:
+            # TODO: need do more test on this case
+            return
         if not new_env.data:
             new_env.data = True
         sub_env.childs = {}
@@ -124,12 +127,41 @@ class Consumer(Dependency):
         raise Exception
 
 
+class ExtraDepend(object):
+    def __init__(self, function_name, depend_list, params_req=None):
+        self.func_name = function_name
+        self.depends = set(depend_list)
+        self.params_req = params_req
+
+    def __repr__(self):
+        return "<ExtraDepend func_name='%s' at 0x%xd>" % self.func_name
+
+
+class CustomParams(Entrypoint):
+    """ Support user update params dynamically before run cases
+        usage:
+        @CustomParams.decorator()
+        def func_name(params):
+            params['new_params'] = 'example'
+            return params
+    """
+    pass
+
+
+def is_ExtraDepend(obj):
+    return isinstance(obj, ExtraDepend)
+
+
 def is_Graft(obj):
     return check_func_entrys(obj, Graft)
 
 
 def is_Cut(obj):
     return check_func_entrys(obj, Cut)
+
+
+def is_CustomParams(obj):
+    return check_func_entrys(obj, CustomParams)
 
 
 def get_all_depend(func, depend_types=None,

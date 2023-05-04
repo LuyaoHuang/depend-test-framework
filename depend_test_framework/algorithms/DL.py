@@ -1,12 +1,14 @@
 """
 Deep learning algorithms
 """
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import numpy
 import random
 import os
 
 from depend_test_framework.log import get_logger
+
+tf.disable_v2_behavior()
 
 LOGGER = get_logger(__name__)
 
@@ -19,10 +21,10 @@ class LSTM(object):
 
             # Define a lstm cell with tensorflow
             # lstm_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
-            lstm_cell = rnn.BasicLSTMCell(num_hidden)
+            lstm_cell = tf.nn.rnn_cell.LSTMCell(num_hidden, state_is_tuple=True)
 
             # Get lstm cell output
-            outputs, states = rnn.static_rnn(lstm_cell, x, dtype=tf.float32)
+            outputs, states = tf.nn.static_rnn(lstm_cell, x, dtype=tf.float32)
 
             # Linear activation, using rnn inner loop last output
             return tf.matmul(outputs[-1], weights['out']) + biases['out']
@@ -57,7 +59,7 @@ class LSTM(object):
         arr_x, arr_y = numpy.array(list_x), numpy.array(list_y)
         # FIXME
         arr_y = arr_y.reshape((arr_y.shape[0], arr_y.shape[-1]))
-        data_set = tf.contrib.data.Dataset.from_tensor_slices((arr_x, arr_y))
+        data_set = tf.data.Dataset.from_tensor_slices((arr_x, arr_y))
         if parser:
             data_set = data_set.map(parser)
         if random:

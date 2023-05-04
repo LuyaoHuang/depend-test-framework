@@ -7,21 +7,15 @@ from depend_test_framework.log import get_logger
 LOGGER = get_logger(__name__)
 
 
-def route_permutations(graph, start, target,
-                       trace=None, history=None, pb=None,
-                       allow_dep=None, dep=None):
+def route_permutations(graph, start, target, history=None, pb=None,
+                       allow_dep=None, dep=None, sr_graph=None,
+                       edge_trace=None, node_trace=None):
     """
     Help to compute all the permutations of the way in the graph
     TODO: Use some package which related to graph based machine learning
     """
     routes = []
     nodes_map = graph[start]
-
-    if not trace:
-        new_trace = set([start])
-    else:
-        new_trace = set(trace)
-        new_trace.add(start)
 
     if history is None:
         history = {}
@@ -35,29 +29,52 @@ def route_permutations(graph, start, target,
             dep += 1
 
     for node, opaque in nodes_map.items():
-        if node in new_trace:
-            continue
-        if node in history.keys():
-            ret = history[node]
+        fin_node = node
+
+        if not edge_trace:
+            tmp_edge_trace = [opaque]
         else:
-            if node == target:
+            tmp_edge_trace = list(edge_trace)
+            tmp_edge_trace.append(opaque)
+
+        if not node_trace:
+            new_node_trace = [start, fin_node]
+        else:
+            new_node_trace = list(node_trace)
+            new_node_trace.append(fin_node)
+
+        if node in sr_graph:
+            for new_node, sr in sr_graph[node].items():
+                if sr.check_require(new_node_trace, tmp_edge_trace):
+                    fin_node = new_node
+                    new_node_trace[-1] = fin_node
+                    break
+
+        if fin_node in new_node_trace[:-1]:
+            continue
+        if fin_node in history.keys():
+            ret = history[fin_node]
+        else:
+            if fin_node == target:
                 routes.append([opaque])
                 continue
             else:
                 ret = route_permutations(graph,
-                    node, target, new_trace, history,
-                    pb, allow_dep, dep)
+                    fin_node, target, history,
+                    pb, allow_dep, dep, sr_graph,
+                    tmp_edge_trace, new_node_trace)
         if ret:
             for sub_route in ret:
                 tmp_route = [opaque]
                 tmp_route.extend(sub_route)
                 routes.append(tmp_route)
 
-    del(new_trace)
-    history[start] = routes
-    if pb:
-        pb.update(len(history))
-    # LOGGER.info("Trace: %s", trace)
+    if not sr_graph:
+        # Cannot use history when there are special routes
+        history[start] = routes
+        if pb:
+            pb.update(len(history))
+    # LOGGER.info("Node Trace: %s", node_trace)
     # LOGGER.info("Map: %s", nodes_map)
     # LOGGER.info("Start: %s", start)
     # LOGGER.info("routes: %s", routes)
