@@ -1,0 +1,34 @@
+params:
+    test_case: False
+    full_matrix: True
+    guest_name: 'vm1'
+    guest_xml: 'guest.xml'
+    img_dir: "/var/lib/libvirt/images/"
+    img_name: "test.img"
+    mist_rules: 'split'
+    max_cases: 30
+    drop_env: 10
+    cleanup: True 
+case:
+    - name: test virtual disk
+      params:
+        restart_libvirtd: True
+        extra_check: True
+      params_matrix:
+        bus:
+          - 'scsi'
+          - 'virtio'
+        disk_type:
+          - 'file'
+          - 'volume'
+        driver_type:
+          - 'raw'
+          - 'qcow2'
+      test_objs:
+        - vdisk.check_disk
+      modules:
+        - vm_basic
+        - vdisk
+      doc-modules:
+        - vm_basic_doc
+        - vdisk_doc
